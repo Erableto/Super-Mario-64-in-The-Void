@@ -167,7 +167,7 @@ s32 intro_regular(void) {
     }
 #endif
     print_intro_text();
-    /*print_text_centered(160, 186, "SUPER MARIO 64");
+    /*print_text_centered(160, 186, "SM64 IN THE VOID");
     print_text_centered(160, 104, "BY ERABLETO");*/
 
     if (gPlayer1Controller->buttonPressed & START_BUTTON) {
@@ -201,7 +201,7 @@ s32 intro_game_over(void) {
 #endif
 
     print_intro_text();
-    /*print_text_centered(160, 186, "SUPER MARIO 64");
+    /*print_text_centered(160, 186, "SM64 IN THE VOID");
     print_text_centered(160, 104, "BY ERABLETO");*/
 
     if (gPlayer1Controller->buttonPressed & START_BUTTON) {

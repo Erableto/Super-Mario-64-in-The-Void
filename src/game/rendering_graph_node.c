@@ -6,6 +6,7 @@
 #include "gfx_dimensions.h"
 #include "main.h"
 #include "memory.h"
+#include "object_list_processor.h"
 #include "print.h"
 #include "rendering_graph_node.h"
 #include "shadow.h"
@@ -175,6 +176,9 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
  * render modes of layers.
  */
 void geo_append_display_list(void *displayList, s16 layer) {
+    if (gCurGraphNodeObject != (struct GraphNodeObject *) gMarioObject) {
+        return;
+    }
 
 #ifdef F3DEX_GBI_2
     gSPLookAt(gDisplayListHead++, &lookAt);
@@ -648,7 +652,8 @@ void geo_process_shadow(struct GraphNodeShadow *node) {
     struct GraphNode *geo;
     Mtx *mtx;
 
-    if (gCurGraphNodeCamera != NULL && gCurGraphNodeObject != NULL) {
+    if (gCurGraphNodeCamera != NULL && gCurGraphNodeObject != NULL
+        && gCurGraphNodeObject != (struct GraphNodeObject *) gMarioObject) {
         if (gCurGraphNodeHeldObject != NULL) {
             get_pos_from_transform_mtx(shadowPos, gMatStack[gMatStackIndex],
                                        *gCurGraphNodeCamera->matrixPtr);
@@ -1019,7 +1024,6 @@ void geo_process_node_and_siblings(struct GraphNode *firstNode) {
                         geo_process_background((struct GraphNodeBackground *) curGraphNode);
                         break;
                     case GRAPH_NODE_TYPE_HELD_OBJ:
-                        geo_process_held_object((struct GraphNodeHeldObject *) curGraphNode);
                         break;
                     default:
                         geo_try_process_children((struct GraphNode *) curGraphNode);

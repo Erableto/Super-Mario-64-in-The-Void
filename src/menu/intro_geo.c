@@ -3,6 +3,7 @@
 #include "game/memory.h"
 #include "game/segment2.h"
 #include "game/segment7.h"
+#include "game/print.h"
 #include "intro_geo.h"
 #include "sm64.h"
 #include "textures.h"
@@ -85,6 +86,13 @@ Gfx *geo_intro_super_mario_64_logo(s32 state, struct GraphNode *node, UNUSED voi
         gSPDisplayList(dlIter++, &intro_seg7_dl_0700B3A0);  // draw model
         gSPPopMatrix(dlIter++, G_MTX_MODELVIEW);
         gSPEndDisplayList(dlIter);
+
+        if (scaleX >= 0.25f) {
+            f32 logoBottom = SCREEN_HEIGHT / 2 - 31.0f * scaleY;
+            f32 gapCenter = (logoBottom + 58.0f) / 2.0f;
+            s32 textY = (s32) (gapCenter - 8.0f * scaleX);
+            print_text_centered_scaled(SCREEN_WIDTH / 2, textY, "IN THE VOID", scaleX);
+        }
 
         sIntroFrameCounter++;
     }

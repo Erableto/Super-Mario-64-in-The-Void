@@ -28,6 +28,8 @@
 void print_text_fmt_int(s32 x, s32 y, const char *str, s32 n);
 void print_text(s32 x, s32 y, const char *str);
 void print_text_centered(s32 x, s32 y, const char *str);
+void print_text_centered_scaled(s32 x, s32 y, const char *str, f32 scale);
+void discard_text_labels(void);
 void render_text_labels(void);
 
 #endif // PRINT_H

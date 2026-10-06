@@ -22,12 +22,14 @@ struct DynList dynlist_mario_master[] = {
     MakeDynObj(D_LIGHT, DYNOBJ_SILVER_STAR_LIGHT),
         SetId(1),
         SetDiffuse(1.0, 1.0, 1.0),
+        SetDrawFlag(OBJ_INVISIBLE),
         SetFlag(0x20),
         SetShapePtrPtr(&gShapeSilverStar),
 
     MakeDynObj(D_LIGHT, DYNOBJ_RED_STAR_LIGHT),
         SetId(0),
         SetDiffuse(1.0, 0.0, 0.0),
+        SetDrawFlag(OBJ_INVISIBLE),
         SetShapePtrPtr(&gShapeRedStar),
 
     StartGroup(0x1),
@@ -1098,7 +1100,7 @@ struct DynList dynlist_mario_master[] = {
             SetNodeGroup(DYNOBJ_MARIO_HEAD_ANIMDATA_GROUP),
             LinkWith(DYNOBJ_MARIO_MAIN_NET),
 
-        // silver star animator
+        // Star animators drive the colored light reflected on Mario's face.
         MakeDynObj(D_DATA_GRP, DYNOBJ_SILVER_STAR_ANIMDATA_GROUP),
             LinkWithPtr(&anim_silver_star),
         MakeDynObj(D_ANIMATOR, DYNOBJ_SILVER_STAR_ANIMATOR),
@@ -1106,7 +1108,6 @@ struct DynList dynlist_mario_master[] = {
             SetNodeGroup(DYNOBJ_SILVER_STAR_ANIMDATA_GROUP),
             LinkWith(DYNOBJ_SILVER_STAR_LIGHT),
 
-        // red star animator
         MakeDynObj(D_DATA_GRP, DYNOBJ_RED_STAR_ANIMDATA_GROUP),
             LinkWithPtr(&anim_red_star),
         MakeDynObj(D_ANIMATOR, DYNOBJ_RED_STAR_ANIMATOR),

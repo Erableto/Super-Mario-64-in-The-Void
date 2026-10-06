@@ -124,6 +124,7 @@ enum DialogResponseDefines {
 };
 
 extern s32 gDialogResponse;
+extern s16 gDialogID;
 extern u16 gDialogColorFadeTimer;
 extern s8 gLastDialogLineNum;
 extern s32 gDialogVariable;

@@ -361,54 +361,49 @@ void play_transition_after_delay(s16 transType, s16 time, u8 red, u8 green, u8 b
 }
 
 void render_game(void) {
-    if (gCurrentArea != NULL && !gWarpTransition.pauseRendering) {
+    if (gCurrentArea != NULL && (!gWarpTransition.pauseRendering || gDialogID != DIALOG_NONE)) {
+        if (D_8032CE74 == NULL && D_8032CE78 == NULL) {
+            clear_framebuffer(gFBSetColor);
+        }
         geo_process_root(gCurrentArea->unk04, D_8032CE74, D_8032CE78, gFBSetColor);
 
         gSPViewport(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(&D_8032CF00));
-
         gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, gBorderHeight, SCREEN_WIDTH,
                       SCREEN_HEIGHT - gBorderHeight);
         render_hud();
-
         gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         render_text_labels();
         do_cutscene_handler();
-        print_displaying_credits_entry();
-        gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, gBorderHeight, SCREEN_WIDTH,
-                      SCREEN_HEIGHT - gBorderHeight);
+
         gMenuOptSelectIndex = render_menus_and_dialogs();
 
         if (gMenuOptSelectIndex != 0) {
             gSaveOptSelectIndex = gMenuOptSelectIndex;
         }
 
-        if (D_8032CE78 != NULL) {
-            make_viewport_clip_rect(D_8032CE78);
-        } else
-            gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, gBorderHeight, SCREEN_WIDTH,
-                          SCREEN_HEIGHT - gBorderHeight);
-
-        if (gWarpTransition.isActive) {
-            if (gWarpTransDelay == 0) {
-                gWarpTransition.isActive = !render_screen_transition(0, gWarpTransition.type, gWarpTransition.time,
-                                                                     &gWarpTransition.data);
-                if (!gWarpTransition.isActive) {
-                    if (gWarpTransition.type & 1) {
-                        gWarpTransition.pauseRendering = TRUE;
-                    } else {
-                        set_warp_transition_rgb(0, 0, 0);
-                    }
-                }
-            } else {
-                gWarpTransDelay--;
-            }
-        }
+        discard_text_labels();
     } else {
         render_text_labels();
         if (D_8032CE78 != NULL) {
             clear_viewport(D_8032CE78, gWarpTransFBSetColor);
         } else {
             clear_framebuffer(gWarpTransFBSetColor);
+        }
+    }
+
+    if (gWarpTransition.isActive) {
+        if (gWarpTransDelay == 0) {
+            gWarpTransition.isActive = !render_screen_transition(0, gWarpTransition.type, gWarpTransition.time,
+                                                                 &gWarpTransition.data);
+            if (!gWarpTransition.isActive) {
+                if (gWarpTransition.type & 1) {
+                    gWarpTransition.pauseRendering = TRUE;
+                } else {
+                    set_warp_transition_rgb(0, 0, 0);
+                }
+            }
+        } else {
+            gWarpTransDelay--;
         }
     }
 

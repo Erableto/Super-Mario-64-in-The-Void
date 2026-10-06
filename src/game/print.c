@@ -16,6 +16,7 @@ struct TextLabel {
     u32 x;
     u32 y;
     s16 length;
+    f32 scale;
     char buffer[50];
 };
 
@@ -62,7 +63,9 @@ ALIGNED8 static const Texture sJapaneseHudGlyphKey[] = {
  * Stores the text to be rendered on screen
  * and how they are to be rendered.
  */
-struct TextLabel *sTextLabels[52];
+#define TEXT_LABELS_MAX 52
+
+struct TextLabel *sTextLabels[TEXT_LABELS_MAX];
 s16 sTextLabelsCount = 0;
 
 /**
@@ -213,6 +216,10 @@ void print_text_fmt_int(s32 x, s32 y, const char *str, s32 n) {
     s32 len = 0;
     s32 srcIndex = 0;
 
+    if (sTextLabelsCount < 0 || sTextLabelsCount >= TEXT_LABELS_MAX) {
+        return;
+    }
+
     // Don't continue if there is no memory to do so.
     if ((sTextLabels[sTextLabelsCount] = mem_pool_alloc(gEffectsMemoryPool,
                                                         sizeof(struct TextLabel))) == NULL) {
@@ -221,6 +228,7 @@ void print_text_fmt_int(s32 x, s32 y, const char *str, s32 n) {
 
     sTextLabels[sTextLabelsCount]->x = x;
     sTextLabels[sTextLabelsCount]->y = y;
+    sTextLabels[sTextLabelsCount]->scale = 1.0f;
 
     c = str[srcIndex];
 
@@ -263,6 +271,10 @@ void print_text(s32 x, s32 y, const char *str) {
     s32 length = 0;
     s32 srcIndex = 0;
 
+    if (sTextLabelsCount < 0 || sTextLabelsCount >= TEXT_LABELS_MAX) {
+        return;
+    }
+
     // Don't continue if there is no memory to do so.
     if ((sTextLabels[sTextLabelsCount] = mem_pool_alloc(gEffectsMemoryPool,
                                                         sizeof(struct TextLabel))) == NULL) {
@@ -271,6 +283,7 @@ void print_text(s32 x, s32 y, const char *str) {
 
     sTextLabels[sTextLabelsCount]->x = x;
     sTextLabels[sTextLabelsCount]->y = y;
+    sTextLabels[sTextLabelsCount]->scale = 1.0f;
 
     c = str[srcIndex];
 
@@ -290,11 +303,19 @@ void print_text(s32 x, s32 y, const char *str) {
  * Prints text in the colorful lettering centered at given X, Y coordinates.
  */
 void print_text_centered(s32 x, s32 y, const char *str) {
+    print_text_centered_scaled(x, y, str, 1.0f);
+}
+
+void print_text_centered_scaled(s32 x, s32 y, const char *str, f32 scale) {
     char c = 0;
     UNUSED s8 unused1 = 0;
     UNUSED s32 unused2 = 0;
     s32 length = 0;
     s32 srcIndex = 0;
+
+    if (sTextLabelsCount < 0 || sTextLabelsCount >= TEXT_LABELS_MAX) {
+        return;
+    }
 
     // Don't continue if there is no memory to do so.
     if ((sTextLabels[sTextLabelsCount] = mem_pool_alloc(gEffectsMemoryPool,
@@ -313,7 +334,8 @@ void print_text_centered(s32 x, s32 y, const char *str) {
     }
 
     sTextLabels[sTextLabelsCount]->length = length;
-    sTextLabels[sTextLabelsCount]->x = x - length * 12 / 2;
+    sTextLabels[sTextLabelsCount]->scale = scale;
+    sTextLabels[sTextLabelsCount]->x = x - (s32) (length * 12.0f * scale / 2.0f);
     sTextLabels[sTextLabelsCount]->y = y;
     sTextLabelsCount++;
 }
@@ -448,25 +470,49 @@ void clip_to_bounds(s32 *x, s32 *y) {
 /**
  * Renders the glyph that's set at the given position.
  */
-void render_textrect(s32 x, s32 y, s32 pos) {
-    s32 rectBaseX = x + pos * 12;
+void render_textrect(s32 x, s32 y, s32 pos, f32 scale) {
+    s32 rectBaseX = x + (s32) (pos * 12.0f * scale);
     s32 rectBaseY = 224 - y;
+    s32 rectWidth = (s32) (16.0f * scale + 0.5f);
     s32 rectX;
     s32 rectY;
 
+    if (rectWidth < 1) {
+        rectWidth = 1;
+    }
 #ifndef WIDESCREEN
     // For widescreen we must allow drawing outside the usual area
     clip_to_bounds(&rectBaseX, &rectBaseY);
 #endif
     rectX = rectBaseX;
     rectY = rectBaseY;
-    gSPTextureRectangle(gDisplayListHead++, rectX << 2, rectY << 2, (rectX + 15) << 2,
-                        (rectY + 15) << 2, G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10);
+    gSPTextureRectangle(gDisplayListHead++, rectX << 2, rectY << 2, (rectX + rectWidth - 1) << 2,
+                        (rectY + rectWidth - 1) << 2, G_TX_RENDERTILE, 0, 0,
+                        (4 << 10) / scale, (1 << 10) / scale);
+}
+
+void discard_text_labels(void) {
+    s32 i;
+    s32 count = sTextLabelsCount;
+
+    if (count < 0) {
+        count = 0;
+    } else if (count > TEXT_LABELS_MAX) {
+        count = TEXT_LABELS_MAX;
+    }
+
+    for (i = 0; i < count; i++) {
+        if (sTextLabels[i] != NULL) {
+            mem_pool_free(gEffectsMemoryPool, sTextLabels[i]);
+            sTextLabels[i] = NULL;
+        }
+    }
+
+    sTextLabelsCount = 0;
 }
 
 /**
- * Renders the text in sTextLabels on screen at the proper locations by iterating
- * a for loop.
+ * Renders the text in sTextLabels on screen at the proper locations.
  */
 void render_text_labels(void) {
     s32 i;
@@ -474,14 +520,20 @@ void render_text_labels(void) {
     s8 glyphIndex;
     Mtx *mtx;
 
-    if (sTextLabelsCount == 0) {
+    if (sTextLabelsCount <= 0) {
+        sTextLabelsCount = 0;
+        return;
+    }
+
+    if (sTextLabelsCount > TEXT_LABELS_MAX) {
+        discard_text_labels();
         return;
     }
 
     mtx = alloc_display_list(sizeof(*mtx));
 
     if (mtx == NULL) {
-        sTextLabelsCount = 0;
+        discard_text_labels();
         return;
     }
 
@@ -500,22 +552,23 @@ void render_text_labels(void) {
                 // This produces a colorful Ü.
                 if (glyphIndex == GLYPH_BETA_KEY) {
                     add_glyph_texture(GLYPH_U);
-                    render_textrect(sTextLabels[i]->x, sTextLabels[i]->y, j);
+                    render_textrect(sTextLabels[i]->x, sTextLabels[i]->y, j, sTextLabels[i]->scale);
 
                     add_glyph_texture(GLYPH_UMLAUT);
-                    render_textrect(sTextLabels[i]->x, sTextLabels[i]->y + 3, j);
+                    render_textrect(sTextLabels[i]->x, sTextLabels[i]->y + 3, j, sTextLabels[i]->scale);
                 } else {
                     add_glyph_texture(glyphIndex);
-                    render_textrect(sTextLabels[i]->x, sTextLabels[i]->y, j);
+                    render_textrect(sTextLabels[i]->x, sTextLabels[i]->y, j, sTextLabels[i]->scale);
                 }
 #else
                 add_glyph_texture(glyphIndex);
-                render_textrect(sTextLabels[i]->x, sTextLabels[i]->y, j);
+                render_textrect(sTextLabels[i]->x, sTextLabels[i]->y, j, sTextLabels[i]->scale);
 #endif
             }
         }
 
         mem_pool_free(gEffectsMemoryPool, sTextLabels[i]);
+        sTextLabels[i] = NULL;
     }
 
     gSPDisplayList(gDisplayListHead++, dl_hud_img_end);

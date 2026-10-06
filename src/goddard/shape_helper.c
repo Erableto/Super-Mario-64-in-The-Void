@@ -1276,8 +1276,7 @@ void animate_mario_head_normal(struct ObjAnimator *self) {
 }
 
 /**
- * Loads the Mario head from `dynlist_mario_master`, sets up grabbers, and makes
- * sparkle particles
+ * Loads the Mario head from `dynlist_mario_master` and sets up grabbers.
  */
 s32 load_mario_head(void (*aniFn)(struct ObjAnimator *)) {
     struct ObjNet *sp54; // net made with sp48 group
@@ -1290,8 +1289,6 @@ s32 load_mario_head(void (*aniFn)(struct ObjAnimator *)) {
     struct ObjJoint *grabberJoint;  // joint that's dragged by the cursor
     struct ObjCamera *camera;
     struct ObjAnimator *animator;
-    struct ObjParticle *particle;
-
     // Load Mario head from the dynlist
 
     start_memtracker("mario face");
@@ -1319,29 +1316,6 @@ s32 load_mario_head(void (*aniFn)(struct ObjAnimator *)) {
     addto_group(gMarioFaceGrp, &animator->header);
 
     d_set_name_suffix(NULL);  // stop adding "l" to generated dynobj names
-
-    // Make sparkle particles
-
-    particle = make_particle(0, COLOUR_WHITE, 0.0f, 0.0f, 0.0f);
-    particle->unk60 = 3;
-    particle->unk64 = 3;
-    particle->attachedToObj = &camera->header;
-    particle->shapePtr = gShapeSilverSpark;
-    addto_group(gGdLightGroup, &particle->header);
-
-    particle = make_particle(0, COLOUR_WHITE, 0.0f, 0.0f, 0.0f);
-    particle->unk60 = 3;
-    particle->unk64 = 2;
-    particle->attachedToObj = d_use_obj("N228l"); // DYNOBJ_SILVER_STAR_LIGHT
-    particle->shapePtr = gShapeSilverSpark;
-    addto_group(gGdLightGroup, &particle->header);
-
-    particle = make_particle(0, COLOUR_RED, 0.0f, 0.0f, 0.0f);
-    particle->unk60 = 3;
-    particle->unk64 = 2;
-    particle->attachedToObj = d_use_obj("N231l"); // DYNOBJ_RED_STAR_LIGHT
-    particle->shapePtr = gShapeRedSpark;
-    addto_group(gGdLightGroup, &particle->header);
 
     mainShapesGrp = (struct ObjGroup *) d_use_obj("N1000l");  // DYNOBJ_MARIO_MAIN_SHAPES_GROUP
     create_gddl_for_shapes(mainShapesGrp);
