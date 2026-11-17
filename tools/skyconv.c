@@ -333,16 +333,19 @@ static void write_skybox_c() { /* write c data to disc */
 
 static void write_cake_c() {
     char buffer[PATH_MAX] = "";
+    bool isVoidCake = strstr(input, "void_cake") != NULL;
+    const char *cakeName = isVoidCake ? "void_cake" : "cake";
+
     if (realpath(output, buffer) == NULL) {
         fprintf(stderr, "err: Could not find find src dir %s", output);
         exit(EXIT_FAILURE);
     }
 
     if (type == CakeEU) {
-        strcat(buffer, "/cake_eu.inc.c");
+        strcat(buffer, isVoidCake ? "/void_cake_eu.inc.c" : "/cake_eu.inc.c");
     }
     else {
-        strcat(buffer, "/cake.inc.c");
+        strcat(buffer, isVoidCake ? "/void_cake.inc.c" : "/cake.inc.c");
     }
 
     FILE *cFile = fopen(buffer, "w");
@@ -351,12 +354,12 @@ static void write_cake_c() {
 
     if (type == CakeEU) {
         for (int i = 0; i < numTiles; ++i) {
-            fprintf(cFile, "ALIGNED8 static const Texture cake_end_texture_eu_%d[] = {\n", i);
+            fprintf(cFile, "ALIGNED8 static const Texture %s_end_texture_eu_%d[] = {\n", cakeName, i);
             print_raw_data(cFile, &tiles[i]);
             fputs("};\n\n", cFile);
         }
     } else {
-        fprintf(cFile, "ALIGNED8 static const u8 cake_end_texture_data[] = {\n");
+        fprintf(cFile, "ALIGNED8 static const u8 %s_end_texture_data[] = {\n", cakeName);
         for (int i = 0; i < numTiles; ++i) {
             print_raw_data(cFile, &tiles[i]);
             fputc(',', cFile);

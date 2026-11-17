@@ -8,34 +8,47 @@
 
 #ifdef VERSION_EU
 #include "levels/ending/cake_eu.inc.c"
+#include "levels/ending/void_cake_eu.inc.c"
 
 // 0x07023000 - 0x07023FFF
-UNUSED ALIGNED8 static const Texture cake_end_texture_eu_35[] = {
+ALIGNED8 static const Texture cake_end_texture_eu_35[] = {
 #include "levels/ending/eu_023000.rgba16.inc.c"
 };
 
 // 0x07024000 - 0x07024FFF
-UNUSED ALIGNED8 static const Texture cake_end_texture_eu_36[] = {
+ALIGNED8 static const Texture cake_end_texture_eu_36[] = {
 #include "levels/ending/eu_024000.rgba16.inc.c"
 };
 
 // 0x07025000 - 0x07025FFF
-UNUSED ALIGNED8 static const Texture cake_end_texture_eu_37[] = {
+ALIGNED8 static const Texture cake_end_texture_eu_37[] = {
 #include "levels/ending/eu_025000.rgba16.inc.c"
 };
 
 // 0x07026000 - 0x07026FFF
-UNUSED ALIGNED8 static const Texture cake_end_texture_eu_38[] = {
+ALIGNED8 static const Texture cake_end_texture_eu_38[] = {
 #include "levels/ending/eu_026000.rgba16.inc.c"
 };
 
 // 0x07027000 - 0x07027FFF
-UNUSED ALIGNED8 static const Texture cake_end_texture_eu_39[] = {
+ALIGNED8 static const Texture cake_end_texture_eu_39[] = {
 #include "levels/ending/eu_027000.rgba16.inc.c"
 };
 
 // 0x07028000 - 0x07028FFF
-UNUSED ALIGNED8 static const Texture cake_end_texture_eu_40[] = {
+ALIGNED8 static const Texture cake_end_texture_eu_40[] = {
+#include "levels/ending/eu_028000.rgba16.inc.c"
+};
+
+ALIGNED8 static const Texture void_cake_end_texture_eu_38[] = {
+#include "levels/ending/eu_026000.rgba16.inc.c"
+};
+
+ALIGNED8 static const Texture void_cake_end_texture_eu_39[] = {
+#include "levels/ending/eu_027000.rgba16.inc.c"
+};
+
+ALIGNED8 static const Texture void_cake_end_texture_eu_40[] = {
 #include "levels/ending/eu_028000.rgba16.inc.c"
 };
 
@@ -200,7 +213,6 @@ static const Gfx dl_cake_end_eu_070296D8[] = {
     gsSPEndDisplayList(),
 };
 
-#ifndef EU_CUSTOM_CAKE_FIX
 // 0x070296F8 - 0x07029768
 const Gfx dl_cake_end_screen_eu_070296F8[] = {
     gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, cake_end_texture_eu_38),
@@ -243,7 +255,7 @@ const Gfx dl_cake_end_screen_eu_070297D8[] = {
     gsSPEndDisplayList(),
 };
 
-#else
+#ifdef EU_CUSTOM_CAKE_FIX
 const Gfx dl_cake_end_screen_eu_fix[] = {
     gsSPDisplayList(dl_cake_end_eu_070296D8),
     gsSPEndDisplayList(),
@@ -254,6 +266,7 @@ const Gfx dl_cake_end_screen_eu_fix[] = {
 #else
 
 #include "levels/ending/cake.inc.c"
+#include "levels/ending/void_cake.inc.c"
 
 #define NUM_CAKE_TEXTURES 40
 #define NUM_CAKE_TEXTURES_X 5
@@ -349,3 +362,58 @@ const Gfx dl_cake_end_screen[] = {
     gsSPEndDisplayList(),
 };
 #endif
+
+#ifdef VERSION_EU
+const Texture *gCakeEndScreenNormalTextures[] = {
+    cake_end_texture_eu_0, cake_end_texture_eu_1, cake_end_texture_eu_2,
+    cake_end_texture_eu_3, cake_end_texture_eu_4, cake_end_texture_eu_5,
+    cake_end_texture_eu_6, cake_end_texture_eu_7, cake_end_texture_eu_8,
+    cake_end_texture_eu_9, cake_end_texture_eu_10, cake_end_texture_eu_11,
+    cake_end_texture_eu_12, cake_end_texture_eu_13, cake_end_texture_eu_14,
+    cake_end_texture_eu_15, cake_end_texture_eu_16, cake_end_texture_eu_17,
+    cake_end_texture_eu_18, cake_end_texture_eu_19, cake_end_texture_eu_20,
+    cake_end_texture_eu_21, cake_end_texture_eu_22, cake_end_texture_eu_23,
+    cake_end_texture_eu_24, cake_end_texture_eu_25, cake_end_texture_eu_26,
+    cake_end_texture_eu_27, cake_end_texture_eu_28, cake_end_texture_eu_29,
+    cake_end_texture_eu_30, cake_end_texture_eu_31, cake_end_texture_eu_32,
+    cake_end_texture_eu_33, cake_end_texture_eu_34,
+};
+
+const Texture *gCakeEndScreenVoidTextures[] = {
+    void_cake_end_texture_eu_0, void_cake_end_texture_eu_1, void_cake_end_texture_eu_2,
+    void_cake_end_texture_eu_3, void_cake_end_texture_eu_4, void_cake_end_texture_eu_5,
+    void_cake_end_texture_eu_6, void_cake_end_texture_eu_7, void_cake_end_texture_eu_8,
+    void_cake_end_texture_eu_9, void_cake_end_texture_eu_10, void_cake_end_texture_eu_11,
+    void_cake_end_texture_eu_12, void_cake_end_texture_eu_13, void_cake_end_texture_eu_14,
+    void_cake_end_texture_eu_15, void_cake_end_texture_eu_16, void_cake_end_texture_eu_17,
+    void_cake_end_texture_eu_18, void_cake_end_texture_eu_19, void_cake_end_texture_eu_20,
+    void_cake_end_texture_eu_21, void_cake_end_texture_eu_22, void_cake_end_texture_eu_23,
+    void_cake_end_texture_eu_24, void_cake_end_texture_eu_25, void_cake_end_texture_eu_26,
+    void_cake_end_texture_eu_27, void_cake_end_texture_eu_28, void_cake_end_texture_eu_29,
+    void_cake_end_texture_eu_30, void_cake_end_texture_eu_31, void_cake_end_texture_eu_32,
+    void_cake_end_texture_eu_33, void_cake_end_texture_eu_34,
+};
+
+// Keep localized labels intact while the cake artwork switches to the void.
+const Texture *gCakeEndScreenNormalLocalizedTextures[] = {
+    cake_end_texture_eu_38, cake_end_texture_eu_39, cake_end_texture_eu_40,
+};
+const Texture *gCakeEndScreenVoidLocalizedTextures[] = {
+    void_cake_end_texture_eu_38, void_cake_end_texture_eu_39, void_cake_end_texture_eu_40,
+};
+const Gfx *gCakeEndScreenLocalizedDisplayLists[] = {
+    dl_cake_end_screen_eu_070296F8,
+    dl_cake_end_screen_eu_07029768,
+    dl_cake_end_screen_eu_070297D8,
+};
+const u32 gCakeEndScreenLocalizedDisplayListSizes[] = {
+    sizeof(dl_cake_end_screen_eu_070296F8) / sizeof(dl_cake_end_screen_eu_070296F8[0]),
+    sizeof(dl_cake_end_screen_eu_07029768) / sizeof(dl_cake_end_screen_eu_07029768[0]),
+    sizeof(dl_cake_end_screen_eu_070297D8) / sizeof(dl_cake_end_screen_eu_070297D8[0]),
+};
+#else
+const u8 *gCakeEndScreenNormalTextureData = cake_end_texture_data;
+const u8 *gCakeEndScreenVoidTextureData = void_cake_end_texture_data;
+const u32 gCakeEndScreenTextureDataSize = sizeof(cake_end_texture_data);
+#endif
+const u32 gCakeEndScreenDisplayListSize = sizeof(dl_cake_end_screen) / sizeof(dl_cake_end_screen[0]);

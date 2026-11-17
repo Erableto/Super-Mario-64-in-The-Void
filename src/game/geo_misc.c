@@ -5,6 +5,7 @@
 
 #include "area.h"
 #include "engine/math_util.h"
+#include "game_init.h"
 #include "level_update.h"
 #include "levels/castle_inside/header.h"
 #include "levels/ending/header.h"
@@ -199,34 +200,119 @@ Gfx *geo_exec_cake_end_screen(s32 callContext, struct GraphNode *node, UNUSED f3
     Gfx *displayListHead = NULL;
 
     if (callContext == GEO_CONTEXT_RENDER) {
-        displayList = alloc_display_list(3 * sizeof(*displayList));
+        displayList = alloc_display_list(4 * sizeof(*displayList));
         displayListHead = displayList;
 
         generatedNode->fnNode.node.flags = (generatedNode->fnNode.node.flags & 0xFF) | 0x100;
+        {
+            s32 useVoidCake = gVoidVisibilityModeEnabled
+                              && !(gPlayer1Controller->buttonDown & L_TRIG);
+            const Gfx *cakeDisplayList = dl_cake_end_screen;
 #ifdef VERSION_EU
-        gSPDisplayList(displayListHead++, dl_cake_end_screen);
+            const Gfx *localizedCakeDisplayList = NULL;
+            u32 localizedCakeDisplayListSize = 0;
+            s32 localizedTextureIndex = -1;
+
+            switch (eu_get_language()) {
+            case LANGUAGE_ENGLISH:
+                localizedTextureIndex = 0;
+                break;
+            case LANGUAGE_FRENCH:
+                localizedTextureIndex = 1;
+                break;
+            case LANGUAGE_GERMAN:
+                localizedTextureIndex = 2;
+                break;
+            }
+            if (localizedTextureIndex >= 0) {
+                localizedCakeDisplayList =
+                    gCakeEndScreenLocalizedDisplayLists[localizedTextureIndex];
+                localizedCakeDisplayListSize =
+                    gCakeEndScreenLocalizedDisplayListSizes[localizedTextureIndex];
+            }
+#endif
+
+            if (useVoidCake) {
+                u32 commandIndex;
+                Gfx *voidCakeDisplayList = alloc_display_list(
+                    gCakeEndScreenDisplayListSize * sizeof(*voidCakeDisplayList));
+
+                if (voidCakeDisplayList == NULL) {
+                    return NULL;
+                }
+                for (commandIndex = 0; commandIndex < gCakeEndScreenDisplayListSize; commandIndex++) {
+#ifdef VERSION_EU
+                    s32 textureIndex;
+#endif
+
+                    voidCakeDisplayList[commandIndex] = dl_cake_end_screen[commandIndex];
+                    if ((voidCakeDisplayList[commandIndex].words.w0 >> 24) != G_SETTIMG) {
+                        continue;
+                    }
+#ifdef VERSION_EU
+                    for (textureIndex = 0; textureIndex < 35; textureIndex++) {
+                        if (voidCakeDisplayList[commandIndex].words.w1
+                            == (uintptr_t) gCakeEndScreenNormalTextures[textureIndex]) {
+                            voidCakeDisplayList[commandIndex].words.w1 =
+                                (uintptr_t) gCakeEndScreenVoidTextures[textureIndex];
+                            break;
+                        }
+                    }
 #else
-        gSPDisplayList(displayListHead++, dl_proj_mtx_fullscreen);
+                    {
+                        uintptr_t normalTexture = (uintptr_t) gCakeEndScreenNormalTextureData;
+                        uintptr_t textureAddress = voidCakeDisplayList[commandIndex].words.w1;
+                        if (textureAddress >= normalTexture
+                            && textureAddress < normalTexture + gCakeEndScreenTextureDataSize) {
+                            voidCakeDisplayList[commandIndex].words.w1 =
+                                (uintptr_t) gCakeEndScreenVoidTextureData + textureAddress - normalTexture;
+                        }
+                    }
+#endif
+                }
+                cakeDisplayList = voidCakeDisplayList;
+#ifdef VERSION_EU
+                if (localizedCakeDisplayList != NULL) {
+                    Gfx *voidLocalizedCakeDisplayList = alloc_display_list(
+                        localizedCakeDisplayListSize * sizeof(*voidLocalizedCakeDisplayList));
+
+                    if (voidLocalizedCakeDisplayList == NULL) {
+                        return NULL;
+                    }
+                    for (commandIndex = 0; commandIndex < localizedCakeDisplayListSize; commandIndex++) {
+                        voidLocalizedCakeDisplayList[commandIndex] =
+                            localizedCakeDisplayList[commandIndex];
+                        if ((voidLocalizedCakeDisplayList[commandIndex].words.w0 >> 24) == G_SETTIMG
+                            && voidLocalizedCakeDisplayList[commandIndex].words.w1
+                                   == (uintptr_t) gCakeEndScreenNormalLocalizedTextures[localizedTextureIndex]) {
+                            voidLocalizedCakeDisplayList[commandIndex].words.w1 =
+                                (uintptr_t) gCakeEndScreenVoidLocalizedTextures[localizedTextureIndex];
+                        }
+                    }
+                    localizedCakeDisplayList = voidLocalizedCakeDisplayList;
+                }
+#endif
+            }
+#ifdef VERSION_EU
+            gSPDisplayList(displayListHead++, cakeDisplayList);
+#else
+            gSPDisplayList(displayListHead++, dl_proj_mtx_fullscreen);
 #endif
 #ifdef VERSION_EU
 #ifdef EU_CUSTOM_CAKE_FIX
-    gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_fix);
+            if (useVoidCake && localizedCakeDisplayList != NULL) {
+                gSPDisplayList(displayListHead++, localizedCakeDisplayList);
+            }
+            gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_fix);
 #else
-    switch (eu_get_language()) {
-            case LANGUAGE_ENGLISH:
-                gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_070296F8);
-                break;
-            case LANGUAGE_FRENCH:
-                gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_07029768);
-                break;
-            case LANGUAGE_GERMAN:
-                gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_070297D8);
-                break;
+            if (localizedCakeDisplayList != NULL) {
+                gSPDisplayList(displayListHead++, localizedCakeDisplayList);
+            }
+#endif
+#else
+            gSPDisplayList(displayListHead++, cakeDisplayList);
+#endif
         }
-#endif
-#else
-        gSPDisplayList(displayListHead++, dl_cake_end_screen);
-#endif
         gSPEndDisplayList(displayListHead);
     }
 
