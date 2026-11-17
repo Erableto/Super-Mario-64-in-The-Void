@@ -12,6 +12,8 @@ extern struct GraphNodeCamera *gCurGraphNodeCamera;
 extern struct GraphNodeObject *gCurGraphNodeObject;
 extern struct GraphNodeHeldObject *gCurGraphNodeHeldObject;
 extern u16 gAreaUpdateCounter;
+extern s32 gVoidVisibilityModeEnabled;
+extern s32 gVoidSpecialZBufferEnabled;
 
 // after processing an object, the type is reset to this
 #define ANIM_TYPE_NONE                  0

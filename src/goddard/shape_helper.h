@@ -23,6 +23,8 @@ struct ObjNet *make_netfromshape(struct ObjShape *shape);
 void animate_mario_head_gameover(struct ObjAnimator *self);
 void animate_mario_head_normal(struct ObjAnimator *self);
 s32 load_mario_head(void (*aniFn)(struct ObjAnimator *));
+void set_mario_head_stars_visible(s32 visible);
+s32 mario_head_stars_are_visible(void);
 void load_shapes2(void);
 
 // see bad_declarations.h

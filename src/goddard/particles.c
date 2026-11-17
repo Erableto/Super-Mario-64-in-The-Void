@@ -9,6 +9,7 @@
 #include "objects.h"
 #include "particles.h"
 #include "renderer.h"
+#include "shape_helper.h"
 #include "skin.h"
 
 // static types
@@ -322,6 +323,7 @@ void move_particle(struct ObjParticle *ptc) {
     struct ObjParticle *sp60;
     UNUSED u8 filler2[4];
     s32 i;
+    s32 particleCount;
     UNUSED u8 filler3[8];
     struct ObjCamera *sp4C;
     struct GdVec3f sp40;
@@ -380,6 +382,7 @@ void move_particle(struct ObjParticle *ptc) {
                         for (i = 0; i < 50; i++) {
                             sp60 = make_particle(1, -1, ptc->pos.x, ptc->pos.y, ptc->pos.z);
                             sp60->shapePtr = ptc->shapePtr;
+                            sp60->flags |= ptc->flags & PARTICLE_FLAG_MARIO_HEAD_SPARK;
                             addto_group(ptc->subParticlesGrp, &sp60->header);
                             sp60->flags &= ~8;
                         }
@@ -387,9 +390,12 @@ void move_particle(struct ObjParticle *ptc) {
                     case 2:
                     case 3:
                         ptc->subParticlesGrp = make_group(0);
-                        for (i = 0; i < 30; i++) {
+                        // Keep the title-screen sparkles lightweight on N64 hardware.
+                        particleCount = (ptc->flags & PARTICLE_FLAG_MARIO_HEAD_SPARK) ? 8 : 30;
+                        for (i = 0; i < particleCount; i++) {
                             sp60 = make_particle(1, -1, ptc->pos.x, ptc->pos.y, ptc->pos.z);
                             sp60->shapePtr = ptc->shapePtr;
+                            sp60->flags |= ptc->flags & PARTICLE_FLAG_MARIO_HEAD_SPARK;
                             addto_group(ptc->subParticlesGrp, &sp60->header);
                             sp60->flags &= ~8;
                         }
@@ -452,6 +458,9 @@ void move_particle(struct ObjParticle *ptc) {
             ptc->header.drawFlags |= OBJ_INVISIBLE;
             ptc->flags &= ~8;
         }
+    }
+    if ((ptc->flags & PARTICLE_FLAG_MARIO_HEAD_SPARK) && !mario_head_stars_are_visible()) {
+        ptc->header.drawFlags |= OBJ_INVISIBLE;
     }
 }
 

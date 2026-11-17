@@ -13,6 +13,7 @@
 #include "envfx_snow.h"
 #include "game_init.h"
 #include "goddard/renderer.h"
+#include "goddard/shape_helper.h"
 #include "interaction.h"
 #include "level_update.h"
 #include "mario_actions_cutscene.h"
@@ -90,6 +91,7 @@ Gfx *geo_draw_mario_head_goddard(s32 callContext, struct GraphNode *node, Mat4 *
     UNUSED Mat4 *transform = c;
 
     if (callContext == GEO_CONTEXT_RENDER) {
+        set_mario_head_stars_visible(gVoidVisibilityModeEnabled && (gPlayer1Controller->buttonDown & L_TRIG));
         if (gPlayer1Controller->controllerData != NULL && !gWarpTransition.isActive) {
             gd_copy_p1_contpad(gPlayer1Controller->controllerData);
         }

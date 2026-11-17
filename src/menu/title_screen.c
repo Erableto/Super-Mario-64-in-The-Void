@@ -8,6 +8,7 @@
 #include "game/main.h"
 #include "game/memory.h"
 #include "game/print.h"
+#include "game/rendering_graph_node.h"
 #include "game/save_file.h"
 #include "game/sound_init.h"
 #include "game/rumble_init.h"
@@ -46,10 +47,15 @@ static s16 sPlayMarioGameOver = TRUE;
  * It also returns the level ID from intro_regular (file select or level select menu)
  */
 s32 run_level_id_or_demo(s32 level) {
+    u16 buttonsDown = gPlayer1Controller->buttonDown;
+
     gCurrDemoInput = NULL;
 
     if (level == LEVEL_NONE) {
-        if (!gPlayer1Controller->buttonDown && !gPlayer1Controller->stickMag) {
+        if (gVoidVisibilityModeEnabled) {
+            buttonsDown &= ~L_TRIG;
+        }
+        if (!buttonsDown && !gPlayer1Controller->stickMag) {
             // start the demo. 800 frames has passed while
             // player is idle on PRESS START screen.
             if ((++sDemoCountdown) == PRESS_START_DEMO_TIMER) {

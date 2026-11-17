@@ -54,6 +54,9 @@ ALIGNED8 static const Texture sJapaneseHudGlyphPercent[] = {
 ALIGNED8 static const Texture sJapaneseHudGlyphCircle[] = {
 #include "textures/segment2/segment2.05E00.rgba16.inc.c"
 };
+#endif
+
+#if defined(VERSION_US) || defined(VERSION_EU)
 ALIGNED8 static const Texture sJapaneseHudGlyphKey[] = {
 #include "textures/segment2/segment2.06000.rgba16.inc.c"
 };
@@ -442,6 +445,21 @@ void add_glyph_texture(s8 glyphIndex) {
     gDPPipeSync(gDisplayListHead++);
     gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, glyphs[glyphIndex]);
     gSPDisplayList(gDisplayListHead++, dl_hud_img_load_tex_block);
+}
+
+void render_hud_key_icon(s32 x, s32 y) {
+    gDPPipeSync(gDisplayListHead++);
+#if defined(VERSION_US) || defined(VERSION_EU)
+    gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1,
+                       VIRTUAL_TO_PHYSICAL(sJapaneseHudGlyphKey));
+#else
+    const u8 *const *glyphs = segmented_to_virtual(main_hud_lut);
+    gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1,
+                       glyphs[GLYPH_BETA_KEY]);
+#endif
+    gSPDisplayList(gDisplayListHead++, dl_hud_img_load_tex_block);
+    gSPTextureRectangle(gDisplayListHead++, x << 2, y << 2, (x + 15) << 2, (y + 15) << 2,
+                        G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10);
 }
 
 #ifndef WIDESCREEN

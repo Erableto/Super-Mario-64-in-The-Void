@@ -14,6 +14,7 @@
 #include "game/object_helpers.h"
 #include "game/object_list_processor.h"
 #include "game/print.h"
+#include "game/rendering_graph_node.h"
 #include "game/save_file.h"
 #include "game/segment2.h"
 #include "game/segment7.h"
@@ -115,6 +116,47 @@ static s8 sAllFilesExist = FALSE;
 // Defines the value of the save slot selected in the menu.
 // Mario A: 1 | Mario B: 2 | Mario C: 3 | Mario D: 4
 static s8 sSelectedFileNum = 0;
+static s32 sRenderSettingsMenuOpen = FALSE;
+static s32 sRenderSettingsMenuSelection = 0;
+static s32 sRenderSettingsMenuSuppressClicks = FALSE;
+static s32 sRenderSettingsMenuStickLocked = FALSE;
+static const u8 sVoidOptionsHint[] = {
+    ASCII_TO_DIALOG('Z'), 0xE6, DIALOG_CHAR_SPACE,
+    ASCII_TO_DIALOG('R'), ASCII_TO_DIALOG('e'), ASCII_TO_DIALOG('n'), ASCII_TO_DIALOG('d'),
+    ASCII_TO_DIALOG('e'), ASCII_TO_DIALOG('r'), DIALOG_CHAR_SPACE,
+    ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('e'), ASCII_TO_DIALOG('t'), ASCII_TO_DIALOG('t'),
+    ASCII_TO_DIALOG('i'), ASCII_TO_DIALOG('n'), ASCII_TO_DIALOG('g'), ASCII_TO_DIALOG('s'),
+    DIALOG_CHAR_TERMINATOR,
+};
+static u8 sRenderSettingsHelpToggle[] = {
+    ASCII_TO_DIALOG('A'), 0xE6, DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('O'),
+    ASCII_TO_DIALOG('G'), ASCII_TO_DIALOG('G'), ASCII_TO_DIALOG('L'), ASCII_TO_DIALOG('E'),
+    DIALOG_CHAR_TERMINATOR,
+};
+static u8 sRenderSettingsHelpClose[] = {
+    ASCII_TO_DIALOG('Z'), 0xE6, DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('C'),
+    ASCII_TO_DIALOG('L'), ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('E'),
+    DIALOG_CHAR_TERMINATOR,
+};
+static u8 sRenderSettingsVisibilityLabel[] = {
+    ASCII_TO_DIALOG('L'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('U'),
+    ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('N'),
+    DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('C'), ASCII_TO_DIALOG('H'), ASCII_TO_DIALOG('E'),
+    ASCII_TO_DIALOG('A'), ASCII_TO_DIALOG('T'), DIALOG_CHAR_TERMINATOR,
+};
+static u8 sRenderSettingsZBufferLabel[] = {
+    ASCII_TO_DIALOG('H'), ASCII_TO_DIALOG('I'), ASCII_TO_DIALOG('D'), ASCII_TO_DIALOG('D'),
+    ASCII_TO_DIALOG('E'), ASCII_TO_DIALOG('N'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('G'),
+    ASCII_TO_DIALOG('E'), ASCII_TO_DIALOG('O'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('Z'),
+    0x9F, ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('U'), ASCII_TO_DIALOG('F'),
+    ASCII_TO_DIALOG('F'), ASCII_TO_DIALOG('E'), ASCII_TO_DIALOG('R'), DIALOG_CHAR_TERMINATOR,
+};
+static u8 sRenderSettingsOn[] = {
+    ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('N'), DIALOG_CHAR_TERMINATOR,
+};
+static u8 sRenderSettingsOff[] = {
+    ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('F'), ASCII_TO_DIALOG('F'), DIALOG_CHAR_TERMINATOR,
+};
 
 // Which coin score mode to use when scoring files. 0 for local
 // coin high score, 1 for high score across all files.
@@ -498,6 +540,12 @@ void bhv_menu_button_init(void) {
  * object scale for each button.
  */
 void bhv_menu_button_loop(void) {
+    if (sRenderSettingsMenuOpen) {
+        gCurrentObject->header.gfx.node.flags |= GRAPH_RENDER_INVISIBLE;
+    } else {
+        gCurrentObject->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
+    }
+
     switch (gCurrentObject->oMenuButtonState) {
         case MENU_BUTTON_STATE_DEFAULT: // Button state
             gCurrentObject->oMenuButtonOrigPosZ = gCurrentObject->oPosZ;
@@ -1497,6 +1545,10 @@ void check_main_menu_clicked_buttons(void) {
  * is loaded, and that checks what buttonID is clicked in the main menu.
  */
 void bhv_menu_button_manager_loop(void) {
+    if (sRenderSettingsMenuOpen || sRenderSettingsMenuSuppressClicks) {
+        return;
+    }
+
     switch (sSelectedButtonID) {
         case MENU_BUTTON_NONE:
             check_main_menu_clicked_buttons();
@@ -1619,6 +1671,13 @@ void bhv_menu_button_manager_loop(void) {
  * If the cursor is clicked, sClickPos uses the same value as sCursorPos.
  */
 void handle_cursor_button_input(void) {
+    if (sRenderSettingsMenuOpen || sRenderSettingsMenuSuppressClicks) {
+        sClickPos[0] = -10000;
+        sClickPos[1] = -10000;
+        sCursorClickingTimer = 0;
+        return;
+    }
+
     // If scoring a file, pressing A just changes the coin score mode.
     if (sSelectedButtonID == MENU_BUTTON_SCORE_FILE_A || sSelectedButtonID == MENU_BUTTON_SCORE_FILE_B
         || sSelectedButtonID == MENU_BUTTON_SCORE_FILE_C
@@ -2785,40 +2844,68 @@ static void print_file_select_strings(void) {
     UNUSED u8 filler[8];
 
     create_dl_ortho_matrix();
-    switch (sSelectedButtonID) {
-        case MENU_BUTTON_NONE:
+    if (!sRenderSettingsMenuOpen) {
+        switch (sSelectedButtonID) {
+            case MENU_BUTTON_NONE:
 #ifdef VERSION_EU
-            // Ultimately calls print_main_menu_strings, but prints main language strings first.
-            print_main_lang_strings();
+                // Ultimately calls print_main_menu_strings, but prints main language strings first.
+                print_main_lang_strings();
 #else
-            print_main_menu_strings();
+                print_main_menu_strings();
 #endif
-            break;
-        case MENU_BUTTON_SCORE:
-            print_score_menu_strings();
-            sScoreFileCoinScoreMode = 0;
-            break;
-        case MENU_BUTTON_COPY:
-            print_copy_menu_strings();
-            break;
-        case MENU_BUTTON_ERASE:
-            print_erase_menu_strings();
-            break;
-        case MENU_BUTTON_SCORE_FILE_A:
-            print_save_file_scores(SAVE_FILE_A);
-            break;
-        case MENU_BUTTON_SCORE_FILE_B:
-            print_save_file_scores(SAVE_FILE_B);
-            break;
-        case MENU_BUTTON_SCORE_FILE_C:
-            print_save_file_scores(SAVE_FILE_C);
-            break;
-        case MENU_BUTTON_SCORE_FILE_D:
-            print_save_file_scores(SAVE_FILE_D);
-            break;
-        case MENU_BUTTON_SOUND_MODE:
-            print_sound_mode_menu_strings();
-            break;
+                break;
+            case MENU_BUTTON_SCORE:
+                print_score_menu_strings();
+                sScoreFileCoinScoreMode = 0;
+                break;
+            case MENU_BUTTON_COPY:
+                print_copy_menu_strings();
+                break;
+            case MENU_BUTTON_ERASE:
+                print_erase_menu_strings();
+                break;
+            case MENU_BUTTON_SCORE_FILE_A:
+                print_save_file_scores(SAVE_FILE_A);
+                break;
+            case MENU_BUTTON_SCORE_FILE_B:
+                print_save_file_scores(SAVE_FILE_B);
+                break;
+            case MENU_BUTTON_SCORE_FILE_C:
+                print_save_file_scores(SAVE_FILE_C);
+                break;
+            case MENU_BUTTON_SCORE_FILE_D:
+                print_save_file_scores(SAVE_FILE_D);
+                break;
+            case MENU_BUTTON_SOUND_MODE:
+                print_sound_mode_menu_strings();
+                break;
+        }
+    }
+    if (sRenderSettingsMenuOpen) {
+        print_text_centered(SCREEN_WIDTH / 2, 178, "RENDER SETTINGS");
+        gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
+        gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, sTextBaseAlpha);
+        print_generic_string(64, 146, sRenderSettingsVisibilityLabel);
+        print_generic_string(64, 122, sRenderSettingsZBufferLabel);
+        print_generic_string(242, 146, gVoidVisibilityModeEnabled ? sRenderSettingsOn : sRenderSettingsOff);
+        print_generic_string(242, 122, gVoidSpecialZBufferEnabled ? sRenderSettingsOn : sRenderSettingsOff);
+        print_generic_string(
+            get_str_x_pos_from_center(SCREEN_WIDTH / 2, sRenderSettingsHelpToggle, 10.0f),
+            72, sRenderSettingsHelpToggle);
+        print_generic_string(
+            get_str_x_pos_from_center(SCREEN_WIDTH / 2, sRenderSettingsHelpClose, 10.0f),
+            56, sRenderSettingsHelpClose);
+        create_dl_translation_matrix(
+            MENU_MTX_PUSH, 52, sRenderSettingsMenuSelection == 0 ? 146 : 122, 0);
+        gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, sTextBaseAlpha);
+        gSPDisplayList(gDisplayListHead++, dl_draw_triangle);
+        gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+        gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
+    } else if (sSelectedButtonID == MENU_BUTTON_NONE) {
+        gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
+        gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, sTextBaseAlpha);
+        print_generic_string(112, 86, sVoidOptionsHint);
+        gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
     }
     // If all 4 save file exists, define true to sAllFilesExist to prevent more copies in copy menu
     if (save_file_exists(SAVE_FILE_A) == TRUE && save_file_exists(SAVE_FILE_B) == TRUE &&
@@ -2842,7 +2929,9 @@ static void print_file_select_strings(void) {
 Gfx *geo_file_select_strings_and_menu_cursor(s32 callContext, UNUSED struct GraphNode *node, UNUSED Mat4 mtx) {
     if (callContext == GEO_CONTEXT_RENDER) {
         print_file_select_strings();
-        print_menu_cursor();
+        if (!sRenderSettingsMenuOpen) {
+            print_menu_cursor();
+        }
     }
     return NULL;
 }
@@ -2858,6 +2947,10 @@ s32 lvl_init_menu_values_and_cursor_pos(UNUSED s32 arg, UNUSED s32 unused) {
 #endif
     sSelectedButtonID = MENU_BUTTON_NONE;
     sCurrentMenuLevel = MENU_LAYER_MAIN;
+    sRenderSettingsMenuOpen = FALSE;
+    sRenderSettingsMenuSelection = 0;
+    sRenderSettingsMenuSuppressClicks = FALSE;
+    sRenderSettingsMenuStickLocked = FALSE;
     sTextBaseAlpha = 0;
     // Place the cursor over the save file that was being played.
     // gCurrSaveFileNum is 1 by default when the game boots, as such
@@ -2915,6 +3008,42 @@ s32 lvl_init_menu_values_and_cursor_pos(UNUSED s32 arg, UNUSED s32 unused) {
  * defined in load_main_menu_save_file.
  */
 s32 lvl_update_obj_and_load_file_selected(UNUSED s32 arg, UNUSED s32 unused) {
+    if (sRenderSettingsMenuOpen) {
+        if (gPlayer1Controller->buttonPressed & Z_TRIG) {
+            sRenderSettingsMenuOpen = FALSE;
+            sRenderSettingsMenuSuppressClicks = TRUE;
+            sRenderSettingsMenuStickLocked = FALSE;
+            play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+        } else {
+            if (gPlayer1Controller->rawStickY > -20 && gPlayer1Controller->rawStickY < 20) {
+                sRenderSettingsMenuStickLocked = FALSE;
+            }
+            if ((gPlayer1Controller->buttonPressed & (U_JPAD | D_JPAD))
+                || (!sRenderSettingsMenuStickLocked
+                    && (gPlayer1Controller->rawStickY >= 60 || gPlayer1Controller->rawStickY <= -60))) {
+                sRenderSettingsMenuSelection = (sRenderSettingsMenuSelection + 1) % 2;
+                if (gPlayer1Controller->rawStickY >= 60 || gPlayer1Controller->rawStickY <= -60) {
+                    sRenderSettingsMenuStickLocked = TRUE;
+                }
+                play_sound(SOUND_MENU_CHANGE_SELECT, gGlobalSoundSource);
+            } else if (gPlayer1Controller->buttonPressed & A_BUTTON) {
+                if (sRenderSettingsMenuSelection == 0) {
+                    gVoidVisibilityModeEnabled = !gVoidVisibilityModeEnabled;
+                } else {
+                    gVoidSpecialZBufferEnabled = !gVoidSpecialZBufferEnabled;
+                }
+                save_file_set_render_settings(gVoidVisibilityModeEnabled, gVoidSpecialZBufferEnabled);
+                play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+            }
+        }
+    } else if (sSelectedButtonID == MENU_BUTTON_NONE
+               && (gPlayer1Controller->buttonPressed & Z_TRIG)) {
+        sRenderSettingsMenuOpen = TRUE;
+        sRenderSettingsMenuSelection = 0;
+        sRenderSettingsMenuStickLocked = FALSE;
+        play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+    }
     area_update_objects();
+    sRenderSettingsMenuSuppressClicks = FALSE;
     return sSelectedFileNum;
 }

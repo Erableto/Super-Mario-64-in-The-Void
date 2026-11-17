@@ -10,6 +10,7 @@
 #include "buffers/zbuffer.h"
 #include "engine/level_script.h"
 #include "game_init.h"
+#include "rendering_graph_node.h"
 #include "main.h"
 #include "memory.h"
 #include "profiler.h"
@@ -553,6 +554,8 @@ void run_demo_inputs(void) {
     // Check if a demo inputs list exists and if so,
     // run the active demo input list.
     if (gCurrDemoInput != NULL) {
+        u16 lTriggerPushed = gControllers[0].controllerData->button & L_TRIG;
+
         // Clear player 2's inputs if they exist. Player 2's controller
         // cannot be used to influence a demo. At some point, Nintendo
         // may have planned for there to be a demo where 2 players moved
@@ -569,7 +572,7 @@ void run_demo_inputs(void) {
         if (gCurrDemoInput->timer == 0) {
             gControllers[0].controllerData->stick_x = 0;
             gControllers[0].controllerData->stick_y = 0;
-            gControllers[0].controllerData->button = END_DEMO;
+            gControllers[0].controllerData->button = END_DEMO | lTriggerPushed;
         } else {
             // Backup the start button if it is pressed, since we don't want the
             // demo input to override the mask where start may have been pressed.
@@ -590,7 +593,7 @@ void run_demo_inputs(void) {
                 ((gCurrDemoInput->buttonMask & 0xF0) << 8) + ((gCurrDemoInput->buttonMask & 0xF));
 
             // If start was pushed, put it into the demo sequence being input to end the demo.
-            gControllers[0].controllerData->button |= startPushed;
+            gControllers[0].controllerData->button |= startPushed | lTriggerPushed;
 
             // Run the current demo input's timer down. if it hits 0, advance the demo input list.
             if (--gCurrDemoInput->timer == 0) {
@@ -731,6 +734,8 @@ void setup_game_memory(void) {
  */
 void thread5_game_loop(UNUSED void *arg) {
     struct LevelCommand *addr;
+    u8 visibilityMode;
+    u8 specialZBuffer;
 
     setup_game_memory();
 #if ENABLE_RUMBLE
@@ -744,6 +749,9 @@ void thread5_game_loop(UNUSED void *arg) {
     createHvqmThread();
 #endif
     save_file_load_all();
+    save_file_get_render_settings(&visibilityMode, &specialZBuffer);
+    gVoidVisibilityModeEnabled = visibilityMode;
+    gVoidSpecialZBufferEnabled = specialZBuffer;
 
     set_vblank_handler(2, &gGameVblankHandler, &gGameVblankQueue, (OSMesg) 1);
 

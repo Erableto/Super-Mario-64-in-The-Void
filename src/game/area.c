@@ -361,6 +361,10 @@ void play_transition_after_delay(s16 transType, s16 time, u8 red, u8 green, u8 b
 }
 
 void render_game(void) {
+    if (gVoidVisibilityModeEnabled && (gPlayer1Controller->buttonPressed & L_TRIG)) {
+        play_sound(SOUND_MENU_CLICK_CHANGE_VIEW, gGlobalSoundSource);
+    }
+
     if (gCurrentArea != NULL && (!gWarpTransition.pauseRendering || gDialogID != DIALOG_NONE)) {
         if (D_8032CE74 == NULL && D_8032CE78 == NULL) {
             clear_framebuffer(gFBSetColor);

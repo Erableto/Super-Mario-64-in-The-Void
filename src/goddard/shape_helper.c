@@ -28,6 +28,10 @@ struct ObjShape *gShapeRedSpark = NULL;    // @ 801A82EC
 struct ObjShape *gShapeSilverSpark = NULL;    // @ 801A82F0
 struct ObjShape *gShapeRedStar = NULL;     // @ 801A82F4
 struct ObjShape *gShapeSilverStar = NULL;  // @ 801A82F8
+static struct ObjLight *sSilverStarLight = NULL;
+static struct ObjLight *sRedStarLight = NULL;
+static struct ObjParticle *sMarioHeadSparkles[3];
+static s32 sMarioHeadStarsVisible;
 
 // Not sure what this data is, but it looks like stub animation data
 
@@ -1289,6 +1293,7 @@ s32 load_mario_head(void (*aniFn)(struct ObjAnimator *)) {
     struct ObjJoint *grabberJoint;  // joint that's dragged by the cursor
     struct ObjCamera *camera;
     struct ObjAnimator *animator;
+    struct ObjParticle *particle;
     // Load Mario head from the dynlist
 
     start_memtracker("mario face");
@@ -1316,6 +1321,38 @@ s32 load_mario_head(void (*aniFn)(struct ObjAnimator *)) {
     addto_group(gMarioFaceGrp, &animator->header);
 
     d_set_name_suffix(NULL);  // stop adding "l" to generated dynobj names
+    sSilverStarLight = (struct ObjLight *) d_use_obj("N228l");
+    sRedStarLight = (struct ObjLight *) d_use_obj("N231l");
+
+    particle = make_particle(0, COLOUR_WHITE, 0.0f, 0.0f, 0.0f);
+    particle->unk60 = 3;
+    particle->unk64 = 3;
+    particle->attachedToObj = &camera->header;
+    particle->shapePtr = gShapeSilverSpark;
+    particle->flags |= PARTICLE_FLAG_MARIO_HEAD_SPARK;
+    particle->header.drawFlags |= OBJ_INVISIBLE;
+    sMarioHeadSparkles[0] = particle;
+    addto_group(gGdLightGroup, &particle->header);
+
+    particle = make_particle(0, COLOUR_WHITE, 0.0f, 0.0f, 0.0f);
+    particle->unk60 = 3;
+    particle->unk64 = 2;
+    particle->attachedToObj = &sSilverStarLight->header;
+    particle->shapePtr = gShapeSilverSpark;
+    particle->flags |= PARTICLE_FLAG_MARIO_HEAD_SPARK;
+    particle->header.drawFlags |= OBJ_INVISIBLE;
+    sMarioHeadSparkles[1] = particle;
+    addto_group(gGdLightGroup, &particle->header);
+
+    particle = make_particle(0, COLOUR_RED, 0.0f, 0.0f, 0.0f);
+    particle->unk60 = 3;
+    particle->unk64 = 2;
+    particle->attachedToObj = &sRedStarLight->header;
+    particle->shapePtr = gShapeRedSpark;
+    particle->flags |= PARTICLE_FLAG_MARIO_HEAD_SPARK;
+    particle->header.drawFlags |= OBJ_INVISIBLE;
+    sMarioHeadSparkles[2] = particle;
+    addto_group(gGdLightGroup, &particle->header);
 
     mainShapesGrp = (struct ObjGroup *) d_use_obj("N1000l");  // DYNOBJ_MARIO_MAIN_SHAPES_GROUP
     create_gddl_for_shapes(mainShapesGrp);
@@ -1390,6 +1427,32 @@ s32 load_mario_head(void (*aniFn)(struct ObjAnimator *)) {
     addto_groupfirst(gMarioFaceGrp, &sp54->header);
 
     return 0;
+}
+
+void set_mario_head_stars_visible(s32 visible) {
+    s32 i;
+
+    sMarioHeadStarsVisible = visible;
+    if (visible) {
+        sSilverStarLight->header.drawFlags &= ~OBJ_INVISIBLE;
+        sRedStarLight->header.drawFlags &= ~OBJ_INVISIBLE;
+    } else {
+        sSilverStarLight->header.drawFlags |= OBJ_INVISIBLE;
+        sRedStarLight->header.drawFlags |= OBJ_INVISIBLE;
+    }
+    for (i = 0; i < ARRAY_COUNT(sMarioHeadSparkles); i++) {
+        if (sMarioHeadSparkles[i] != NULL) {
+            if (visible) {
+                sMarioHeadSparkles[i]->header.drawFlags &= ~OBJ_INVISIBLE;
+            } else {
+                sMarioHeadSparkles[i]->header.drawFlags |= OBJ_INVISIBLE;
+            }
+        }
+    }
+}
+
+s32 mario_head_stars_are_visible(void) {
+    return sMarioHeadStarsVisible;
 }
 
 /* @ 249288 for 0xe0 */

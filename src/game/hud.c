@@ -13,6 +13,7 @@
 #include "area.h"
 #include "save_file.h"
 #include "print.h"
+#include "rendering_graph_node.h"
 
 /* @file hud.c
  * This file implements HUD rendering and power meter animations.
@@ -453,6 +454,12 @@ void render_hud(void) {
         if (hudDisplayFlags & HUD_DISPLAY_FLAG_CAMERA_AND_POWER) {
             render_hud_power_meter();
             render_hud_camera_status();
+        }
+
+        if (gVoidVisibilityModeEnabled) {
+            gSPDisplayList(gDisplayListHead++, dl_hud_img_begin);
+            render_hud_key_icon(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), 205);
+            gSPDisplayList(gDisplayListHead++, dl_hud_img_end);
         }
 
         if (hudDisplayFlags & HUD_DISPLAY_FLAG_TIMER) {

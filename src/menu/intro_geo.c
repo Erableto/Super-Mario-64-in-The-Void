@@ -10,6 +10,7 @@
 #include "types.h"
 #include "buffers/framebuffers.h"
 #include "game/game_init.h"
+#include "game/rendering_graph_node.h"
 #include "audio/external.h"
 
 // frame counts for the zoom in, hold, and zoom out of title model
@@ -206,7 +207,7 @@ Gfx *geo_intro_regular_backdrop(s32 state, struct GraphNode *node, UNUSED void *
     Gfx *dlIter = NULL;
     s32 i;
 
-    if (state == 1) {  // draw
+    if (state == 1 && gVoidVisibilityModeEnabled && (gPlayer1Controller->buttonDown & L_TRIG)) {
         dl = alloc_display_list(16 * sizeof(*dl));
         dlIter = dl;
         graphNode->node.flags = (graphNode->node.flags & 0xFF) | (LAYER_OPAQUE << 8);
@@ -243,7 +244,7 @@ Gfx *geo_intro_gameover_backdrop(s32 state, struct GraphNode *node, UNUSED void 
         sGameOverTableIndex = -2;
         for (i = 0; i < ARRAY_COUNT(gameOverBackgroundTable); ++i)
             gameOverBackgroundTable[i] = INTRO_BACKGROUND_GAME_OVER;
-    } else {  // draw
+    } else if (gVoidVisibilityModeEnabled && (gPlayer1Controller->buttonDown & L_TRIG)) {
         dl = alloc_display_list(16 * sizeof(*dl));
         dlIter = dl;
         if (sGameOverTableIndex == -2) {

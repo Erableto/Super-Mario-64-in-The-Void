@@ -4,6 +4,7 @@
 #include "engine/math_util.h"
 #include "game_init.h"
 #include "gfx_dimensions.h"
+#include "level_geo.h"
 #include "main.h"
 #include "memory.h"
 #include "object_list_processor.h"
@@ -72,6 +73,35 @@ struct RenderModeContainer {
     u32 modes[8];
 };
 
+#define G_RM_ZB_DEPTH_ONLY_1(flags) \
+    ((flags) | FORCE_BL | GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_MEM, G_BL_1))
+#define G_RM_ZB_DEPTH_ONLY_2(flags) \
+    ((flags) | FORCE_BL | GBL_c2(G_BL_CLR_IN, G_BL_0, G_BL_CLR_MEM, G_BL_1))
+
+static struct RenderModeContainer sDepthOnlyRenderModeTable_1Cycle = { {
+    G_RM_ZB_DEPTH_ONLY_1(Z_CMP | Z_UPD | CVG_DST_FULL | ZMODE_OPA),
+    G_RM_ZB_DEPTH_ONLY_1(AA_EN | Z_CMP | Z_UPD | IM_RD | CVG_DST_CLAMP | ZMODE_OPA | ALPHA_CVG_SEL),
+    G_RM_ZB_DEPTH_ONLY_1(AA_EN | Z_CMP | IM_RD | CVG_DST_WRAP | ZMODE_DEC),
+    G_RM_ZB_DEPTH_ONLY_1(AA_EN | Z_CMP | Z_UPD | IM_RD | CVG_DST_CLAMP | ALPHA_CVG_SEL | ZMODE_INTER),
+    G_RM_ZB_DEPTH_ONLY_1(AA_EN | Z_CMP | Z_UPD | IM_RD | CVG_DST_CLAMP | CVG_X_ALPHA | ALPHA_CVG_SEL
+                         | ZMODE_OPA | TEX_EDGE),
+    G_RM_ZB_DEPTH_ONLY_1(Z_CMP | IM_RD | CVG_DST_FULL | ZMODE_XLU),
+    G_RM_ZB_DEPTH_ONLY_1(Z_CMP | IM_RD | CVG_DST_FULL | ZMODE_DEC),
+    G_RM_ZB_DEPTH_ONLY_1(Z_CMP | IM_RD | CVG_DST_FULL | ZMODE_INTER),
+} };
+
+static struct RenderModeContainer sDepthOnlyRenderModeTable_2Cycle = { {
+    G_RM_ZB_DEPTH_ONLY_2(Z_CMP | Z_UPD | CVG_DST_FULL | ZMODE_OPA),
+    G_RM_ZB_DEPTH_ONLY_2(AA_EN | Z_CMP | Z_UPD | IM_RD | CVG_DST_CLAMP | ZMODE_OPA | ALPHA_CVG_SEL),
+    G_RM_ZB_DEPTH_ONLY_2(AA_EN | Z_CMP | IM_RD | CVG_DST_WRAP | ZMODE_DEC),
+    G_RM_ZB_DEPTH_ONLY_2(AA_EN | Z_CMP | Z_UPD | IM_RD | CVG_DST_CLAMP | ALPHA_CVG_SEL | ZMODE_INTER),
+    G_RM_ZB_DEPTH_ONLY_2(AA_EN | Z_CMP | Z_UPD | IM_RD | CVG_DST_CLAMP | CVG_X_ALPHA | ALPHA_CVG_SEL
+                         | ZMODE_OPA | TEX_EDGE),
+    G_RM_ZB_DEPTH_ONLY_2(Z_CMP | IM_RD | CVG_DST_FULL | ZMODE_XLU),
+    G_RM_ZB_DEPTH_ONLY_2(Z_CMP | IM_RD | CVG_DST_FULL | ZMODE_DEC),
+    G_RM_ZB_DEPTH_ONLY_2(Z_CMP | IM_RD | CVG_DST_FULL | ZMODE_INTER),
+} };
+
 /* Rendermode settings for cycle 1 for all 8 layers. */
 struct RenderModeContainer renderModeTable_1Cycle[2] = { { {
     G_RM_OPA_SURF,
@@ -125,6 +155,12 @@ struct GraphNodeCamera *gCurGraphNodeCamera = NULL;
 struct GraphNodeObject *gCurGraphNodeObject = NULL;
 struct GraphNodeHeldObject *gCurGraphNodeHeldObject = NULL;
 u16 gAreaUpdateCounter = 0;
+s32 gVoidVisibilityModeEnabled = FALSE;
+s32 gVoidSpecialZBufferEnabled = TRUE;
+static struct DisplayListNode *sOcclusionListHeads[GFX_NUM_MASTER_LISTS];
+static struct DisplayListNode *sOcclusionListTails[GFX_NUM_MASTER_LISTS];
+static s32 sProcessingBackgroundNode;
+static s32 sProcessingSkyboxNode;
 
 #ifdef F3DEX_GBI_2
 LookAt lookAt;
@@ -151,6 +187,27 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
     if (enableZBuffer != 0) {
         gDPPipeSync(gDisplayListHead++);
         gSPSetGeometryMode(gDisplayListHead++, G_ZBUFFER);
+        if (gVoidSpecialZBufferEnabled) {
+            gDPSetColorImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WIDTH,
+                             gPhysicalFramebuffers[(sRenderingFramebuffer + 1) % 3]);
+
+            for (i = 0; i < GFX_NUM_MASTER_LISTS; i++) {
+                if ((currList = sOcclusionListHeads[i]) != NULL) {
+                    gDPSetRenderMode(gDisplayListHead++, sDepthOnlyRenderModeTable_1Cycle.modes[i],
+                                     sDepthOnlyRenderModeTable_2Cycle.modes[i]);
+                    while (currList != NULL) {
+                        gSPMatrix(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(currList->transform),
+                                  G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+                        gSPDisplayList(gDisplayListHead++, currList->displayList);
+                        currList = currList->next;
+                    }
+                }
+            }
+            gDPPipeSync(gDisplayListHead++);
+            gDPSetColorImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WIDTH,
+                             gPhysicalFramebuffers[sRenderingFramebuffer]);
+            gDPPipeSync(gDisplayListHead++);
+        }
     }
 
     for (i = 0; i < GFX_NUM_MASTER_LISTS; i++) {
@@ -176,8 +233,21 @@ void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
  * render modes of layers.
  */
 void geo_append_display_list(void *displayList, s16 layer) {
-    if (gCurGraphNodeObject != (struct GraphNodeObject *) gMarioObject) {
-        return;
+    if (sProcessingBackgroundNode) {
+        if (sProcessingSkyboxNode
+            && (!gVoidVisibilityModeEnabled || !(gPlayer1Controller->buttonDown & L_TRIG))) {
+            return;
+        }
+    } else {
+        if (!gVoidVisibilityModeEnabled || !(gPlayer1Controller->buttonDown & L_TRIG)) {
+            if (gCurGraphNodeHeldObject != NULL
+                || gCurGraphNodeObject != (struct GraphNodeObject *) gMarioObject) {
+                if (gVoidSpecialZBufferEnabled) {
+                    goto appendToOcclusionList;
+                }
+                return;
+            }
+        }
     }
 
 #ifdef F3DEX_GBI_2
@@ -197,6 +267,23 @@ void geo_append_display_list(void *displayList, s16 layer) {
         }
         gCurGraphNodeMasterList->listTails[layer] = listNode;
     }
+    return;
+
+appendToOcclusionList:
+    if (gCurGraphNodeMasterList != NULL) {
+        struct DisplayListNode *listNode =
+            alloc_only_pool_alloc(gDisplayListHeap, sizeof(struct DisplayListNode));
+
+        listNode->transform = gMatStackFixed[gMatStackIndex];
+        listNode->displayList = displayList;
+        listNode->next = NULL;
+        if (sOcclusionListHeads[layer] == NULL) {
+            sOcclusionListHeads[layer] = listNode;
+        } else {
+            sOcclusionListTails[layer]->next = listNode;
+        }
+        sOcclusionListTails[layer] = listNode;
+    }
 }
 
 /**
@@ -210,6 +297,8 @@ void geo_process_master_list(struct GraphNodeMasterList *node) {
         gCurGraphNodeMasterList = node;
         for (i = 0; i < GFX_NUM_MASTER_LISTS; i++) {
             node->listHeads[i] = NULL;
+            sOcclusionListHeads[i] = NULL;
+            sOcclusionListTails[i] = NULL;
         }
         geo_process_node_and_siblings(node->node.children);
         geo_process_master_list_sub(node);
@@ -513,7 +602,11 @@ void geo_process_background(struct GraphNodeBackground *node) {
                                  (struct AllocOnlyPool *) gMatStack[gMatStackIndex]);
     }
     if (list != NULL) {
+        sProcessingBackgroundNode = TRUE;
+        sProcessingSkyboxNode = node->fnNode.func == (GraphNodeFunc) geo_skybox_main;
         geo_append_display_list((void *) VIRTUAL_TO_PHYSICAL(list), node->fnNode.node.flags >> 8);
+        sProcessingSkyboxNode = FALSE;
+        sProcessingBackgroundNode = FALSE;
     } else if (gCurGraphNodeMasterList != NULL) {
 #ifndef F3DEX_GBI_2E
         Gfx *gfxStart = alloc_display_list(sizeof(Gfx) * 7);
@@ -531,7 +624,9 @@ void geo_process_background(struct GraphNodeBackground *node) {
         gDPSetCycleType(gfx++, G_CYC_1CYCLE);
         gSPEndDisplayList(gfx++);
 
+        sProcessingBackgroundNode = TRUE;
         geo_append_display_list((void *) VIRTUAL_TO_PHYSICAL(gfxStart), 0);
+        sProcessingBackgroundNode = FALSE;
     }
     if (node->fnNode.node.children != NULL) {
         geo_process_node_and_siblings(node->fnNode.node.children);
@@ -1024,6 +1119,7 @@ void geo_process_node_and_siblings(struct GraphNode *firstNode) {
                         geo_process_background((struct GraphNodeBackground *) curGraphNode);
                         break;
                     case GRAPH_NODE_TYPE_HELD_OBJ:
+                        geo_process_held_object((struct GraphNodeHeldObject *) curGraphNode);
                         break;
                     default:
                         geo_try_process_children((struct GraphNode *) curGraphNode);

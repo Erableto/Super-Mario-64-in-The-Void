@@ -15,6 +15,7 @@
 #include "levels/castle_grounds/header.h"
 #include "memory.h"
 #include "print.h"
+#include "rendering_graph_node.h"
 #include "save_file.h"
 #include "segment2.h"
 #include "segment7.h"
@@ -1574,6 +1575,50 @@ void handle_special_dialog_text(s16 dialogID) { // dialog ID tables, in order
 }
 
 s16 gMenuMode = MENU_MODE_NONE;
+s32 gVoidPauseRenderSettingsMenuOpen;
+static s32 sPauseRenderSettingsSelection;
+static s32 sPauseRenderSettingsStickLocked;
+
+static const u8 sRenderSettingsVisibilityLabel[] = {
+    ASCII_TO_DIALOG('L'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('U'),
+    ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('N'),
+    DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('C'), ASCII_TO_DIALOG('H'), ASCII_TO_DIALOG('E'),
+    ASCII_TO_DIALOG('A'), ASCII_TO_DIALOG('T'), DIALOG_CHAR_TERMINATOR,
+};
+static const u8 sRenderSettingsZBufferLabel[] = {
+    ASCII_TO_DIALOG('H'), ASCII_TO_DIALOG('I'), ASCII_TO_DIALOG('D'), ASCII_TO_DIALOG('D'),
+    ASCII_TO_DIALOG('E'), ASCII_TO_DIALOG('N'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('G'),
+    ASCII_TO_DIALOG('E'), ASCII_TO_DIALOG('O'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('Z'),
+    0x9F, ASCII_TO_DIALOG('B'), ASCII_TO_DIALOG('U'), ASCII_TO_DIALOG('F'),
+    ASCII_TO_DIALOG('F'), ASCII_TO_DIALOG('E'), ASCII_TO_DIALOG('R'),
+    DIALOG_CHAR_TERMINATOR,
+};
+static const u8 sRenderSettingsOn[] = {
+    ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('N'), DIALOG_CHAR_TERMINATOR,
+};
+static const u8 sRenderSettingsOff[] = {
+    ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('F'), ASCII_TO_DIALOG('F'), DIALOG_CHAR_TERMINATOR,
+};
+static u8 sRenderSettingsHelpToggle[] = {
+    ASCII_TO_DIALOG('A'), 0xE6, DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('T'), ASCII_TO_DIALOG('O'),
+    ASCII_TO_DIALOG('G'), ASCII_TO_DIALOG('G'), ASCII_TO_DIALOG('L'), ASCII_TO_DIALOG('E'),
+    DIALOG_CHAR_TERMINATOR,
+};
+static u8 sRenderSettingsHelpClose[] = {
+    ASCII_TO_DIALOG('B'), DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('R'),
+    DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('Z'), 0xE6, DIALOG_CHAR_SPACE, ASCII_TO_DIALOG('C'),
+    ASCII_TO_DIALOG('L'), ASCII_TO_DIALOG('O'), ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('E'),
+    DIALOG_CHAR_TERMINATOR,
+};
+
+static const u8 sVoidOptionsHint[] = {
+    ASCII_TO_DIALOG('Z'), 0xE6, DIALOG_CHAR_SPACE,
+    ASCII_TO_DIALOG('R'), ASCII_TO_DIALOG('e'), ASCII_TO_DIALOG('n'), ASCII_TO_DIALOG('d'),
+    ASCII_TO_DIALOG('e'), ASCII_TO_DIALOG('r'), DIALOG_CHAR_SPACE,
+    ASCII_TO_DIALOG('S'), ASCII_TO_DIALOG('e'), ASCII_TO_DIALOG('t'), ASCII_TO_DIALOG('t'),
+    ASCII_TO_DIALOG('i'), ASCII_TO_DIALOG('n'), ASCII_TO_DIALOG('g'), ASCII_TO_DIALOG('s'),
+    DIALOG_CHAR_TERMINATOR,
+};
 
 u8 gEndCutsceneStrEn0[] = { TEXT_FILE_MARIO_EXCLAMATION };
 u8 gEndCutsceneStrEn1[] = { TEXT_POWER_STARS_RESTORED };
@@ -2407,22 +2452,24 @@ void render_pause_course_options(s16 x, s16 y, s8 *index, s16 yIndex) {
 }
 
 void render_pause_castle_menu_box(s16 x, s16 y) {
-    create_dl_translation_matrix(MENU_MTX_PUSH, x - 78, y - 32, 0);
-    create_dl_scale_matrix(MENU_MTX_NOPUSH, 1.2f, 0.8f, 1.0f);
-    gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 105);
-    gSPDisplayList(gDisplayListHead++, dl_draw_text_bg_box);
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+    if (!gVoidPauseRenderSettingsMenuOpen) {
+        create_dl_translation_matrix(MENU_MTX_PUSH, x - 78, y - 32, 0);
+        create_dl_scale_matrix(MENU_MTX_NOPUSH, 1.2f, 0.8f, 1.0f);
+        gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 105);
+        gSPDisplayList(gDisplayListHead++, dl_draw_text_bg_box);
+        gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
 
-    create_dl_translation_matrix(MENU_MTX_PUSH, x + 6, y - 28, 0);
-    create_dl_rotation_matrix(MENU_MTX_NOPUSH, DEFAULT_DIALOG_BOX_ANGLE, 0, 0, 1.0f);
-    gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, gDialogTextAlpha);
-    gSPDisplayList(gDisplayListHead++, dl_draw_triangle);
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+        create_dl_translation_matrix(MENU_MTX_PUSH, x + 6, y - 28, 0);
+        create_dl_rotation_matrix(MENU_MTX_NOPUSH, DEFAULT_DIALOG_BOX_ANGLE, 0, 0, 1.0f);
+        gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, gDialogTextAlpha);
+        gSPDisplayList(gDisplayListHead++, dl_draw_triangle);
+        gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
 
-    create_dl_translation_matrix(MENU_MTX_PUSH, x - 9, y - 101, 0);
-    create_dl_rotation_matrix(MENU_MTX_NOPUSH, 270.0f, 0, 0, 1.0f);
-    gSPDisplayList(gDisplayListHead++, dl_draw_triangle);
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+        create_dl_translation_matrix(MENU_MTX_PUSH, x - 9, y - 101, 0);
+        create_dl_rotation_matrix(MENU_MTX_NOPUSH, 270.0f, 0, 0, 1.0f);
+        gSPDisplayList(gDisplayListHead++, dl_draw_triangle);
+        gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+    }
 }
 
 void highlight_last_course_complete_stars(void) {
@@ -2439,6 +2486,76 @@ void highlight_last_course_complete_stars(void) {
     }
 
     gDialogLineNum = doneCourseIndex;
+}
+
+static void render_pause_render_settings_menu(void) {
+    s32 justOpened = FALSE;
+
+    if (!gVoidPauseRenderSettingsMenuOpen) {
+        if ((gDialogBoxState == DIALOG_STATE_VERTICAL || gDialogBoxState == DIALOG_STATE_HORIZONTAL)
+            && (gPlayer3Controller->buttonPressed & Z_TRIG)) {
+            gVoidPauseRenderSettingsMenuOpen = TRUE;
+            sPauseRenderSettingsSelection = 0;
+            sPauseRenderSettingsStickLocked = FALSE;
+            justOpened = TRUE;
+            play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+        } else {
+            if (gDialogBoxState == DIALOG_STATE_VERTICAL || gDialogBoxState == DIALOG_STATE_HORIZONTAL) {
+                gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
+                gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, gDialogTextAlpha);
+                print_generic_string(112, 17, sVoidOptionsHint);
+                gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
+            }
+            return;
+        }
+    }
+    print_text_centered(SCREEN_WIDTH / 2, 153, "RENDER SETTINGS");
+    gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
+    gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, gDialogTextAlpha);
+    print_generic_string(64, 116, sRenderSettingsVisibilityLabel);
+    print_generic_string(64, 96, sRenderSettingsZBufferLabel);
+    print_generic_string(242, 116, gVoidVisibilityModeEnabled ? sRenderSettingsOn : sRenderSettingsOff);
+    print_generic_string(242, 96, gVoidSpecialZBufferEnabled ? sRenderSettingsOn : sRenderSettingsOff);
+    print_generic_string(
+        get_str_x_pos_from_center(SCREEN_WIDTH / 2, sRenderSettingsHelpToggle, 10.0f),
+        59, sRenderSettingsHelpToggle);
+    print_generic_string(
+        get_str_x_pos_from_center(SCREEN_WIDTH / 2, sRenderSettingsHelpClose, 10.0f),
+        43, sRenderSettingsHelpClose);
+    create_dl_translation_matrix(MENU_MTX_PUSH, 52, sPauseRenderSettingsSelection == 0 ? 116 : 96, 0);
+    gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, gDialogTextAlpha);
+    gSPDisplayList(gDisplayListHead++, dl_draw_triangle);
+    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+    gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
+    render_text_labels();
+
+    if (justOpened) {
+        return;
+    }
+    if (gPlayer3Controller->rawStickY > -20 && gPlayer3Controller->rawStickY < 20) {
+        sPauseRenderSettingsStickLocked = FALSE;
+    }
+    if (gPlayer3Controller->buttonPressed & (B_BUTTON | Z_TRIG)) {
+        gVoidPauseRenderSettingsMenuOpen = FALSE;
+        sPauseRenderSettingsStickLocked = FALSE;
+        play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+    } else if ((gPlayer3Controller->buttonPressed & (U_JPAD | D_JPAD))
+               || (!sPauseRenderSettingsStickLocked
+                   && (gPlayer3Controller->rawStickY >= 60 || gPlayer3Controller->rawStickY <= -60))) {
+        sPauseRenderSettingsSelection = 1 - sPauseRenderSettingsSelection;
+        if (gPlayer3Controller->rawStickY >= 60 || gPlayer3Controller->rawStickY <= -60) {
+            sPauseRenderSettingsStickLocked = TRUE;
+        }
+        play_sound(SOUND_MENU_CHANGE_SELECT, gGlobalSoundSource);
+    } else if (gPlayer3Controller->buttonPressed & A_BUTTON) {
+        if (sPauseRenderSettingsSelection == 0) {
+            gVoidVisibilityModeEnabled = !gVoidVisibilityModeEnabled;
+        } else {
+            gVoidSpecialZBufferEnabled = !gVoidSpecialZBufferEnabled;
+        }
+        save_file_set_render_settings(gVoidVisibilityModeEnabled, gVoidSpecialZBufferEnabled);
+        play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+    }
 }
 
 #ifdef VERSION_EU
@@ -2531,10 +2648,12 @@ void render_pause_castle_main_strings(s16 x, s16 y) {
     }
 #endif
 
-    handle_menu_scrolling(
-        MENU_SCROLL_VERTICAL, &gDialogLineNum,
-        COURSE_NUM_TO_INDEX(COURSE_MIN) - 1, COURSE_NUM_TO_INDEX(COURSE_BONUS_STAGES) + 1
-    );
+    if (!gVoidPauseRenderSettingsMenuOpen) {
+        handle_menu_scrolling(
+            MENU_SCROLL_VERTICAL, &gDialogLineNum,
+            COURSE_NUM_TO_INDEX(COURSE_MIN) - 1, COURSE_NUM_TO_INDEX(COURSE_BONUS_STAGES) + 1
+        );
+    }
 
     if (gDialogLineNum == COURSE_NUM_TO_INDEX(COURSE_BONUS_STAGES) + 1) {
         gDialogLineNum = COURSE_NUM_TO_INDEX(COURSE_MIN); // Exceeded max, set to min
@@ -2609,6 +2728,8 @@ s16 render_pause_courses_and_castle(void) {
         case DIALOG_STATE_OPENING:
             gDialogLineNum = MENU_OPT_DEFAULT;
             gDialogTextAlpha = 0;
+            gVoidPauseRenderSettingsMenuOpen = FALSE;
+            sPauseRenderSettingsStickLocked = FALSE;
             level_set_transition(-1, NULL);
             play_sound(SOUND_MENU_PAUSE, gGlobalSoundSource);
 
@@ -2623,19 +2744,17 @@ s16 render_pause_courses_and_castle(void) {
 
         case DIALOG_STATE_VERTICAL:
             shade_screen();
-            render_pause_my_score_coins();
-            render_pause_red_coins();
+            if (!gVoidPauseRenderSettingsMenuOpen) {
+                render_pause_my_score_coins();
+                render_pause_red_coins();
+            }
 
-            if (gMarioStates[0].action & ACT_FLAG_PAUSE_EXIT) {
+            if (!gVoidPauseRenderSettingsMenuOpen && (gMarioStates[0].action & ACT_FLAG_PAUSE_EXIT)) {
                 render_pause_course_options(99, 93, &gDialogLineNum, 15);
             }
 
-#ifdef VERSION_EU
-            if (gPlayer3Controller->buttonPressed & (A_BUTTON | Z_TRIG | START_BUTTON))
-#else
-            if (gPlayer3Controller->buttonPressed & A_BUTTON
-                || gPlayer3Controller->buttonPressed & START_BUTTON)
-#endif
+            if (!gVoidPauseRenderSettingsMenuOpen
+                && (gPlayer3Controller->buttonPressed & (A_BUTTON | START_BUTTON)))
             {
                 level_set_transition(0, NULL);
                 play_sound(SOUND_MENU_PAUSE_2, gGlobalSoundSource);
@@ -2654,16 +2773,14 @@ s16 render_pause_courses_and_castle(void) {
 
         case DIALOG_STATE_HORIZONTAL:
             shade_screen();
-            print_hud_pause_colorful_str();
-            render_pause_castle_menu_box(160, 143);
-            render_pause_castle_main_strings(104, 60);
+            if (!gVoidPauseRenderSettingsMenuOpen) {
+                print_hud_pause_colorful_str();
+                render_pause_castle_menu_box(160, 143);
+                render_pause_castle_main_strings(104, 60);
+            }
 
-#ifdef VERSION_EU
-            if (gPlayer3Controller->buttonPressed & (A_BUTTON | Z_TRIG | START_BUTTON))
-#else
-            if (gPlayer3Controller->buttonPressed & A_BUTTON
-                || gPlayer3Controller->buttonPressed & START_BUTTON)
-#endif
+            if (!gVoidPauseRenderSettingsMenuOpen
+                && (gPlayer3Controller->buttonPressed & (A_BUTTON | START_BUTTON)))
             {
                 level_set_transition(0, NULL);
                 play_sound(SOUND_MENU_PAUSE_2, gGlobalSoundSource);
@@ -2674,6 +2791,8 @@ s16 render_pause_courses_and_castle(void) {
             }
             break;
     }
+
+    render_pause_render_settings_menu();
 
     if (gDialogTextAlpha < 250) {
         gDialogTextAlpha += 25;

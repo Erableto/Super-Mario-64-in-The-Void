@@ -19,6 +19,10 @@
 
 #define MENU_DATA_MAGIC 0x4849
 #define SAVE_FILE_MAGIC 0x4441
+#define RENDER_SETTINGS_VALID_MASK 0xC0
+#define RENDER_SETTINGS_VALID_VALUE 0x80
+#define RENDER_SETTINGS_VISIBILITY 0x01
+#define RENDER_SETTINGS_SPECIAL_ZBUFFER 0x02
 
 //STATIC_ASSERT(sizeof(struct SaveBuffer) == EEPROM_SIZE, "eeprom buffer size must match");
 
@@ -240,6 +244,8 @@ static void wipe_main_menu_data(void) {
     gSaveBuffer.menuData[0].coinScoreAges[0] = 0x3FFFFFFF;
     gSaveBuffer.menuData[0].coinScoreAges[1] = 0x2AAAAAAA;
     gSaveBuffer.menuData[0].coinScoreAges[2] = 0x15555555;
+    gSaveBuffer.menuData[0].renderSettings =
+        RENDER_SETTINGS_VALID_VALUE | RENDER_SETTINGS_SPECIAL_ZBUFFER;
 
     gMainMenuDataModified = TRUE;
     save_main_menu_data();
@@ -369,6 +375,13 @@ void save_file_load_all(void) {
         case 2: // Slot 1 is correct and slot 0 is incorrect
             restore_main_menu_data(1);
             break;
+    }
+
+    if ((gSaveBuffer.menuData[0].renderSettings & RENDER_SETTINGS_VALID_MASK) != RENDER_SETTINGS_VALID_VALUE) {
+        gSaveBuffer.menuData[0].renderSettings =
+            RENDER_SETTINGS_VALID_VALUE | RENDER_SETTINGS_SPECIAL_ZBUFFER;
+        gMainMenuDataModified = TRUE;
+        save_main_menu_data();
     }
 
     for (file = 0; file < NUM_SAVE_FILES; file++) {
@@ -620,6 +633,20 @@ void save_file_set_sound_mode(u16 mode) {
 
 u16 save_file_get_sound_mode(void) {
     return gSaveBuffer.menuData[0].soundMode;
+}
+
+void save_file_set_render_settings(u8 visibilityMode, u8 specialZBuffer) {
+    gSaveBuffer.menuData[0].renderSettings =
+        RENDER_SETTINGS_VALID_VALUE
+        | (visibilityMode ? RENDER_SETTINGS_VISIBILITY : 0)
+        | (specialZBuffer ? RENDER_SETTINGS_SPECIAL_ZBUFFER : 0);
+    gMainMenuDataModified = TRUE;
+    save_main_menu_data();
+}
+
+void save_file_get_render_settings(u8 *visibilityMode, u8 *specialZBuffer) {
+    *visibilityMode = (gSaveBuffer.menuData[0].renderSettings & RENDER_SETTINGS_VISIBILITY) != 0;
+    *specialZBuffer = (gSaveBuffer.menuData[0].renderSettings & RENDER_SETTINGS_SPECIAL_ZBUFFER) != 0;
 }
 
 void save_file_move_cap_to_default_location(void) {
