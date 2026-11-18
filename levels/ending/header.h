@@ -14,8 +14,13 @@ extern const Texture *gCakeEndScreenNormalTextures[];
 extern const Texture *gCakeEndScreenVoidTextures[];
 extern const Texture *gCakeEndScreenNormalLocalizedTextures[];
 extern const Texture *gCakeEndScreenVoidLocalizedTextures[];
+#ifdef EU_CUSTOM_CAKE_FIX
+extern const Gfx *gCakeEndScreenLocalizedEndDisplayLists[];
+extern const Gfx *gCakeEndScreenLocalizedThankYouDisplayLists[];
+#else
 extern const Gfx *gCakeEndScreenLocalizedDisplayLists[];
 extern const u32 gCakeEndScreenLocalizedDisplayListSizes[];
+#endif
 #else
 extern const u8 *gCakeEndScreenNormalTextureData;
 extern const u8 *gCakeEndScreenVoidTextureData;

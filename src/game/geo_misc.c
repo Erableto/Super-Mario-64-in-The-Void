@@ -205,12 +205,19 @@ Gfx *geo_exec_cake_end_screen(s32 callContext, struct GraphNode *node, UNUSED f3
 
         generatedNode->fnNode.node.flags = (generatedNode->fnNode.node.flags & 0xFF) | 0x100;
         {
-            s32 useVoidCake = gVoidVisibilityModeEnabled
-                              && !(gPlayer1Controller->buttonDown & L_TRIG);
+            s32 useVoidCake = !gVoidVisibilityModeEnabled
+                              || !(gPlayer1Controller->buttonDown & L_TRIG);
             const Gfx *cakeDisplayList = dl_cake_end_screen;
 #ifdef VERSION_EU
+#ifdef EU_CUSTOM_CAKE_FIX
+            const Gfx *localizedEndDisplayList = NULL;
+            const Gfx *localizedThankYouDisplayList = NULL;
+            const Gfx **localizedEndDisplayLists = NULL;
+            const Gfx **localizedThankYouDisplayLists = NULL;
+#else
             const Gfx *localizedCakeDisplayList = NULL;
-            u32 localizedCakeDisplayListSize = 0;
+            const Gfx **localizedDisplayLists = NULL;
+#endif
             s32 localizedTextureIndex = -1;
 
             switch (eu_get_language()) {
@@ -225,73 +232,75 @@ Gfx *geo_exec_cake_end_screen(s32 callContext, struct GraphNode *node, UNUSED f3
                 break;
             }
             if (localizedTextureIndex >= 0) {
-                localizedCakeDisplayList =
-                    gCakeEndScreenLocalizedDisplayLists[localizedTextureIndex];
-                localizedCakeDisplayListSize =
-                    gCakeEndScreenLocalizedDisplayListSizes[localizedTextureIndex];
+#ifdef EU_CUSTOM_CAKE_FIX
+                localizedEndDisplayLists =
+                    segmented_to_virtual(gCakeEndScreenLocalizedEndDisplayLists);
+                localizedThankYouDisplayLists =
+                    segmented_to_virtual(gCakeEndScreenLocalizedThankYouDisplayLists);
+                localizedEndDisplayList = localizedEndDisplayLists[localizedTextureIndex];
+                localizedThankYouDisplayList =
+                    localizedThankYouDisplayLists[localizedTextureIndex];
+#else
+                localizedDisplayLists = segmented_to_virtual(gCakeEndScreenLocalizedDisplayLists);
+                localizedCakeDisplayList = localizedDisplayLists[localizedTextureIndex];
+#endif
             }
 #endif
 
             if (useVoidCake) {
                 u32 commandIndex;
+                const Gfx *normalCakeDisplayList = segmented_to_virtual(dl_cake_end_screen);
+                const u32 cakeDisplayListSize =
+                    *(const u32 *) segmented_to_virtual(&gCakeEndScreenDisplayListSize);
+#ifdef VERSION_EU
+                const Texture **normalTextures = segmented_to_virtual(gCakeEndScreenNormalTextures);
+                const Texture **voidTextures = segmented_to_virtual(gCakeEndScreenVoidTextures);
+#else
+                const u8 *normalTextureData =
+                    *(const u8 **) segmented_to_virtual(&gCakeEndScreenNormalTextureData);
+                const u8 *voidTextureData =
+                    *(const u8 **) segmented_to_virtual(&gCakeEndScreenVoidTextureData);
+                const u32 textureDataSize =
+                    *(const u32 *) segmented_to_virtual(&gCakeEndScreenTextureDataSize);
+#endif
                 Gfx *voidCakeDisplayList = alloc_display_list(
-                    gCakeEndScreenDisplayListSize * sizeof(*voidCakeDisplayList));
+                    cakeDisplayListSize * sizeof(*voidCakeDisplayList));
 
                 if (voidCakeDisplayList == NULL) {
                     return NULL;
                 }
-                for (commandIndex = 0; commandIndex < gCakeEndScreenDisplayListSize; commandIndex++) {
+                for (commandIndex = 0; commandIndex < cakeDisplayListSize; commandIndex++) {
 #ifdef VERSION_EU
                     s32 textureIndex;
 #endif
 
-                    voidCakeDisplayList[commandIndex] = dl_cake_end_screen[commandIndex];
+                    voidCakeDisplayList[commandIndex] = normalCakeDisplayList[commandIndex];
                     if ((voidCakeDisplayList[commandIndex].words.w0 >> 24) != G_SETTIMG) {
                         continue;
                     }
 #ifdef VERSION_EU
                     for (textureIndex = 0; textureIndex < 35; textureIndex++) {
                         if (voidCakeDisplayList[commandIndex].words.w1
-                            == (uintptr_t) gCakeEndScreenNormalTextures[textureIndex]) {
+                            == (uintptr_t) normalTextures[textureIndex]) {
                             voidCakeDisplayList[commandIndex].words.w1 =
-                                (uintptr_t) gCakeEndScreenVoidTextures[textureIndex];
+                                (uintptr_t) voidTextures[textureIndex];
                             break;
                         }
                     }
 #else
                     {
-                        uintptr_t normalTexture = (uintptr_t) gCakeEndScreenNormalTextureData;
+                        // Texture addresses in G_SETTIMG remain segmented addresses.
+                        uintptr_t normalTexture = (uintptr_t) normalTextureData;
                         uintptr_t textureAddress = voidCakeDisplayList[commandIndex].words.w1;
                         if (textureAddress >= normalTexture
-                            && textureAddress < normalTexture + gCakeEndScreenTextureDataSize) {
+                            && textureAddress < normalTexture + textureDataSize) {
                             voidCakeDisplayList[commandIndex].words.w1 =
-                                (uintptr_t) gCakeEndScreenVoidTextureData + textureAddress - normalTexture;
+                                (uintptr_t) voidTextureData + textureAddress - normalTexture;
                         }
                     }
 #endif
                 }
                 cakeDisplayList = voidCakeDisplayList;
-#ifdef VERSION_EU
-                if (localizedCakeDisplayList != NULL) {
-                    Gfx *voidLocalizedCakeDisplayList = alloc_display_list(
-                        localizedCakeDisplayListSize * sizeof(*voidLocalizedCakeDisplayList));
-
-                    if (voidLocalizedCakeDisplayList == NULL) {
-                        return NULL;
-                    }
-                    for (commandIndex = 0; commandIndex < localizedCakeDisplayListSize; commandIndex++) {
-                        voidLocalizedCakeDisplayList[commandIndex] =
-                            localizedCakeDisplayList[commandIndex];
-                        if ((voidLocalizedCakeDisplayList[commandIndex].words.w0 >> 24) == G_SETTIMG
-                            && voidLocalizedCakeDisplayList[commandIndex].words.w1
-                                   == (uintptr_t) gCakeEndScreenNormalLocalizedTextures[localizedTextureIndex]) {
-                            voidLocalizedCakeDisplayList[commandIndex].words.w1 =
-                                (uintptr_t) gCakeEndScreenVoidLocalizedTextures[localizedTextureIndex];
-                        }
-                    }
-                    localizedCakeDisplayList = voidLocalizedCakeDisplayList;
-                }
-#endif
             }
 #ifdef VERSION_EU
             gSPDisplayList(displayListHead++, cakeDisplayList);
@@ -300,8 +309,11 @@ Gfx *geo_exec_cake_end_screen(s32 callContext, struct GraphNode *node, UNUSED f3
 #endif
 #ifdef VERSION_EU
 #ifdef EU_CUSTOM_CAKE_FIX
-            if (useVoidCake && localizedCakeDisplayList != NULL) {
-                gSPDisplayList(displayListHead++, localizedCakeDisplayList);
+            if (localizedEndDisplayList != NULL) {
+                gSPDisplayList(displayListHead++, localizedEndDisplayList);
+            }
+            if (!useVoidCake && localizedThankYouDisplayList != NULL) {
+                gSPDisplayList(displayListHead++, localizedThankYouDisplayList);
             }
             gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_fix);
 #else

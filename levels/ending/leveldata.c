@@ -256,6 +256,56 @@ const Gfx dl_cake_end_screen_eu_070297D8[] = {
 };
 
 #ifdef EU_CUSTOM_CAKE_FIX
+const Gfx dl_cake_end_screen_eu_end_english[] = {
+    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, cake_end_texture_eu_38),
+    gsDPLoadSync(),
+    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, 64 * 32 - 1, CALC_DXT(64, G_IM_SIZ_16b_BYTES)),
+    gsSPTextureRectangle(128 << 2, 200 << 2, (128 + 63) << 2, (200 + 31) << 2, G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10),
+    gsSPEndDisplayList(),
+};
+
+const Gfx dl_cake_end_screen_eu_end_french[] = {
+    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, cake_end_texture_eu_39),
+    gsDPLoadSync(),
+    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, 64 * 32 - 1, CALC_DXT(64, G_IM_SIZ_16b_BYTES)),
+    gsSPTextureRectangle(128 << 2, 200 << 2, (128 + 63) << 2, (200 + 31) << 2, G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10),
+    gsSPEndDisplayList(),
+};
+
+const Gfx dl_cake_end_screen_eu_end_german[] = {
+    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, cake_end_texture_eu_40),
+    gsDPLoadSync(),
+    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, 64 * 32 - 1, CALC_DXT(64, G_IM_SIZ_16b_BYTES)),
+    gsSPTextureRectangle(128 << 2, 200 << 2, (128 + 63) << 2, (200 + 31) << 2, G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10),
+    gsSPEndDisplayList(),
+};
+
+const Gfx dl_cake_end_screen_eu_thank_you_english[] = {
+    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, cake_end_texture_eu_35),
+    gsDPLoadSync(),
+    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, 64 * 32 - 1, CALC_DXT(64, G_IM_SIZ_16b_BYTES)),
+    gsSPTextureRectangle(128 << 2, 125 << 2, (128 + 63) << 2, (125 + 31) << 2, G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10),
+    gsSPEndDisplayList(),
+};
+
+const Gfx dl_cake_end_screen_eu_thank_you_french[] = {
+    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, cake_end_texture_eu_36),
+    gsDPLoadSync(),
+    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, 64 * 32 - 1, CALC_DXT(64, G_IM_SIZ_16b_BYTES)),
+    gsSPTextureRectangle(128 << 2, 125 << 2, (128 + 63) << 2, (125 + 31) << 2, G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10),
+    gsSPEndDisplayList(),
+};
+
+const Gfx dl_cake_end_screen_eu_thank_you_german[] = {
+    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, cake_end_texture_eu_37),
+    gsDPLoadSync(),
+    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, 64 * 32 - 1, CALC_DXT(64, G_IM_SIZ_16b_BYTES)),
+    gsSPTextureRectangle(128 << 2, 125 << 2, (128 + 63) << 2, (125 + 31) << 2, G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10),
+    gsSPEndDisplayList(),
+};
+#endif
+
+#ifdef EU_CUSTOM_CAKE_FIX
 const Gfx dl_cake_end_screen_eu_fix[] = {
     gsSPDisplayList(dl_cake_end_eu_070296D8),
     gsSPEndDisplayList(),
@@ -405,6 +455,16 @@ const Gfx *gCakeEndScreenLocalizedDisplayLists[] = {
     dl_cake_end_screen_eu_070296F8,
     dl_cake_end_screen_eu_07029768,
     dl_cake_end_screen_eu_070297D8,
+};
+const Gfx *gCakeEndScreenLocalizedEndDisplayLists[] = {
+    dl_cake_end_screen_eu_end_english,
+    dl_cake_end_screen_eu_end_french,
+    dl_cake_end_screen_eu_end_german,
+};
+const Gfx *gCakeEndScreenLocalizedThankYouDisplayLists[] = {
+    dl_cake_end_screen_eu_thank_you_english,
+    dl_cake_end_screen_eu_thank_you_french,
+    dl_cake_end_screen_eu_thank_you_german,
 };
 const u32 gCakeEndScreenLocalizedDisplayListSizes[] = {
     sizeof(dl_cake_end_screen_eu_070296F8) / sizeof(dl_cake_end_screen_eu_070296F8[0]),
