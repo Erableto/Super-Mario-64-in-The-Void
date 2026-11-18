@@ -323,7 +323,6 @@ void move_particle(struct ObjParticle *ptc) {
     struct ObjParticle *sp60;
     UNUSED u8 filler2[4];
     s32 i;
-    s32 particleCount;
     UNUSED u8 filler3[8];
     struct ObjCamera *sp4C;
     struct GdVec3f sp40;
@@ -390,9 +389,7 @@ void move_particle(struct ObjParticle *ptc) {
                     case 2:
                     case 3:
                         ptc->subParticlesGrp = make_group(0);
-                        // Keep the title-screen sparkles lightweight on N64 hardware.
-                        particleCount = (ptc->flags & PARTICLE_FLAG_MARIO_HEAD_SPARK) ? 8 : 30;
-                        for (i = 0; i < particleCount; i++) {
+                        for (i = 0; i < 30; i++) {
                             sp60 = make_particle(1, -1, ptc->pos.x, ptc->pos.y, ptc->pos.z);
                             sp60->shapePtr = ptc->shapePtr;
                             sp60->flags |= ptc->flags & PARTICLE_FLAG_MARIO_HEAD_SPARK;
